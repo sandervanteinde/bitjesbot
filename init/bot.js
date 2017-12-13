@@ -100,6 +100,9 @@ function onMessageReceived(update){
         console.error("Unhandled message received", update);
     lastMessage = update.update_id;
 }
+function deleteWebhook(){
+    callApiMethod('deleteWebhook');
+}
 function pollMessage(){
     if(polling) return;
     polling = true;
@@ -111,7 +114,6 @@ function pollMessage(){
     });
 }
 function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
-
     let options = {
         key: fs.readFileSync(key, 'utf8'), 
         cert: fs.readFileSync(cert, 'utf8'),
@@ -168,8 +170,10 @@ if(config.webhook){
         throw "Webhooks require a certificate and key to run a server!";
     setWebhook(config.webhook, config.key, config.cert, config);
 }
-else
+else{
+    deleteWebhook();
     loop.subscribe(pollMessage);
+}
 registerSlashCommand('help', 'This command', helpCallback)
 
 module.exports = {

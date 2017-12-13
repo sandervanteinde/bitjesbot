@@ -151,7 +151,7 @@ if(config.webhook){
     if(config.cert === null || config.key === null)
         throw "Webhooks require a certificate and key to run a server!";
     let {ca} = config;
-    setWebhook(config.webhook, config.cert, config.key, {ca});
+    setWebhook(config.webhook, config.key, config.cert, {ca});
 }
 else
     loop.subscribe(pollMessage);

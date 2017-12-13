@@ -3,6 +3,7 @@ const https = require('https');
 const config = require('../config');
 const bodyparser = require('../utils/bodyparser');
 const keyboard = require('../utils/keyboard');
+const fs = require('fs');
 let slashCommands = {};
 
 let polling = false;
@@ -109,7 +110,11 @@ function pollMessage(){
     });
 }
 function setWebhook(url, key, cert, {port = 8443} = {}){
-    let server = https.createServer({key, cert, port}, res => {
+    let server = https.createServer({
+        key: fs.readFileSync(key), 
+        cert: fs.readFileSync(cert),
+        port
+    }, res => {
         console.log(res);
     });
     server.listen(port);

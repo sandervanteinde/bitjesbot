@@ -3,6 +3,6 @@ module.exports = {
     key: null,
     cert: null,
     webhook: null,
-    ca: null,
-    port: null
+    port: null,
+    loggingLevel: 3 //1 == debug, 2 = warning, 3 = error
 }

@@ -4,6 +4,7 @@ const config = require('../config');
 const bodyparser = require('../utils/bodyparser');
 const keyboard = require('../utils/keyboard');
 const fs = require('fs');
+const debug = require('../utils/debug');
 let slashCommands = {};
 
 let polling = false;
@@ -118,10 +119,23 @@ function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
     };
     if(ca !== null)
         options.ca = [fs.readFileSync(ca, 'utf8')];
-    console.log(options);
+    debug('webhook options', options);
     let server = https.createServer(options, (req, res) => {
-        console.log(res);
-        res.end();
+        debug(`${req.method} ${req.url} requested`);
+        if(req.url == '/webhook'){
+            bodyparser.parseJson(req, body => {
+                onMessageReceived(body);
+                res.setHeader('Content-Type', 'text/plain');
+                res.write('hello secure world');
+                res.end();
+            });
+        }else{
+            res.write('hello secure world');
+            res.end();
+        }
+    });
+    server.on('connection', (conn) => {
+        debug(`Connection incoming from ${conn.remoteAddress}`);
     });
     server.listen(port);
     callApiMethod('setWebhook', {url});

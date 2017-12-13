@@ -3,5 +3,6 @@ module.exports = {
     key: null,
     cert: null,
     webhook: null,
-    ca: null
+    ca: null,
+    port: null
 }

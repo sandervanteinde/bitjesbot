@@ -110,6 +110,7 @@ function pollMessage(){
     });
 }
 function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
+
     let options = {
         key: fs.readFileSync(key, 'utf8'), 
         cert: fs.readFileSync(cert, 'utf8'),
@@ -153,8 +154,7 @@ function editMessage(chat_id, message_id, text, {keyboard = null} = {}){
 if(config.webhook){
     if(config.cert === null || config.key === null)
         throw "Webhooks require a certificate and key to run a server!";
-    let {ca} = config;
-    setWebhook(config.webhook, config.key, config.cert, {ca});
+    setWebhook(config.webhook, config.key, config.cert, config);
 }
 else
     loop.subscribe(pollMessage);

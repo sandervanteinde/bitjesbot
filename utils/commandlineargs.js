@@ -9,4 +9,3 @@ args.forEach(v => {
     if(config[key] !== undefined)
     config[key] = value;
 });
-console.log(config);

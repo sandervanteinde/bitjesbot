@@ -119,7 +119,6 @@ function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
     };
     if(ca !== null)
         options.ca = [fs.readFileSync(ca, 'utf8')];
-    debug('webhook options', options);
     let server = https.createServer(options, (req, res) => {
         debug(`${req.method} ${req.url} requested`);
         if(req.url == '/webhook'){

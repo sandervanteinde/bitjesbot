@@ -1,3 +1,6 @@
 module.exports = {
-    API_KEY: '485075355:AAG9VR-Z1PAgWqW7EJxJhP9noQkGAgIOyQQ'
+    API_KEY: null,
+    webhook: null,
+    key: null,
+    cert: null
 };

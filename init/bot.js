@@ -108,7 +108,7 @@ function pollMessage(){
         polling = false;
     });
 }
-function setWebhook(url, key, cert, {port = 8443}){
+function setWebhook(url, key, cert, {port = 8443} = {}){
     let server = https.createServer({key, cert, port}, res => {
         console.log(res);
     });

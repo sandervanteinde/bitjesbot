@@ -108,6 +108,13 @@ function pollMessage(){
         polling = false;
     });
 }
+function setWebhook(url, key, cert, {port = 8443}){
+    let server = https.createServer({key, cert, port}, res => {
+        console.log(res);
+    });
+    server.listen(port);
+    callApiMethod('setWebhook', {url});
+}
 function helpCallback(msg){
     commands = [];
     for(let slashCommand in slashCommands){
@@ -131,8 +138,13 @@ function editMessage(chat_id, message_id, text, {keyboard = null} = {}){
         options.reply_markup = {inline_keyboard: keyboard};
     callApiMethod('editMessageText', options);
 }
-
-loop.subscribe(pollMessage);
+if(config.webhook){
+    if(config.cert === null || config.key === null)
+        throw "Webhooks require a certificate and key to run a server!";
+    setWebhook(config.webhook, config.cert, config.key);
+}
+else
+    loop.subscribe(pollMessage);
 registerSlashCommand('help', 'This command', helpCallback)
 
 module.exports = {

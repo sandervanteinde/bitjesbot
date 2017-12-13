@@ -1,3 +1,4 @@
+require('./utils/commandlineargs');
 const loop = require('./utils/loop');
 
 //load init directory
@@ -7,5 +8,4 @@ fs.readdir('./init', (err, files) => {
         require(`./init/${file}`);
     });
 });
-
 loop.run();

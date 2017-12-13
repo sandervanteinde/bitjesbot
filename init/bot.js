@@ -123,6 +123,9 @@ function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
     });
     server.listen(port);
     callApiMethod('setWebhook', {url});
+    loop.subscribe(() => {
+        console.log('server is listening:', server.listening);
+    })
 }
 function helpCallback(msg){
     commands = [];

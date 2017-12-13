@@ -116,7 +116,7 @@ function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
         port
     };
     if(ca !== null)
-        options.ca = ca;
+        options.ca = fs.readFileSync(ca);
     console.log(options);
     https.createServer(options, res => {
         console.log(res);

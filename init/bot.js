@@ -111,12 +111,12 @@ function pollMessage(){
 }
 function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
     let options = {
-        key: fs.readFileSync(key), 
-        cert: fs.readFileSync(cert),
+        key: fs.readFileSync(key, 'utf8'), 
+        cert: fs.readFileSync(cert, 'utf8'),
         port
     };
     if(ca !== null)
-        options.ca = fs.readFileSync(ca);
+        options.ca = [fs.readFileSync(ca, 'utf8')];
     console.log(options);
     https.createServer(options, res => {
         console.log(res);

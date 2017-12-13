@@ -109,12 +109,14 @@ function pollMessage(){
         polling = false;
     });
 }
-function setWebhook(url, key, cert, {port = 8443} = {}){
+function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
     let options = {
         key: fs.readFileSync(key), 
         cert: fs.readFileSync(cert),
         port
     };
+    if(ca !== null)
+        options.ca = ca;
     console.log(options);
     https.createServer(options, res => {
         console.log(res);
@@ -148,7 +150,8 @@ function editMessage(chat_id, message_id, text, {keyboard = null} = {}){
 if(config.webhook){
     if(config.cert === null || config.key === null)
         throw "Webhooks require a certificate and key to run a server!";
-    setWebhook(config.webhook, config.cert, config.key);
+    let {ca} = config;
+    setWebhook(config.webhook, config.cert, config.key, {ca});
 }
 else
     loop.subscribe(pollMessage);

@@ -1,4 +1,3 @@
-require('./utils/commandlineargs');
 const loop = require('./utils/loop');
 const config = require('./config');
 const server = require('./utils/server');

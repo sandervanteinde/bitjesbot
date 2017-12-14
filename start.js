@@ -23,6 +23,7 @@ if(config.enableWebsite || config.domain){
         let cert = null;
         let onDone = () => {
             if(key == null || cert == null) return;
+            
             server.startSecure({key,cert, port: config.port});
         }
         fs.readFile(config.key,{encoding: 'utf8'}, (err, data) => {

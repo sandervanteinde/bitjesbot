@@ -1,6 +1,7 @@
 const loop = require('./utils/loop');
 const config = require('./config');
 const server = require('./utils/server');
+const log = require('./utils/log');
 
 //load init directory
 const fs = require('fs');
@@ -9,15 +10,31 @@ fs.readdir('./init', (err, files) => {
         require(`./init/${file}`);
     });
 });
-loop.run();
+
+//Configure website if enabled
 if(config.enableWebsite || config.webhook){
     if(config.webhook && (!config.key || !config.cert))
         throw 'A key and certificate is required for webhooks!';
     server.startNormal(80);
     if(config.key && config.cert)
-        server.startSecure({
-            key: fs.readFileSync(config.key, 'utf8'), 
-            cert: fs.readFileSync(config.cert, 'utf8'),
-            port
+    {
+        log.debug('Loading key and certificates');
+        let key = null;
+        let cert = null;
+        let onDone = () => {
+            if(key == null || cert == null) return;
+            server.startSecure({key,cert,port});
+        }
+        fs.readFile(config.key,{encoding: 'utf8'}, (err, data) => {
+            key = data;
+            onDone();
         });
+        fs.readFile(config.cert, {encoding: 'utf8'}, (err, data)=>{
+            cert = data;
+            onDone();
+        });
+    }
 }
+
+//start the loop
+loop.run();

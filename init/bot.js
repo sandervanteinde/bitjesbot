@@ -113,14 +113,12 @@ function pollMessage(){
         polling = false;
     });
 }
-function setWebhook(url, key, cert, {ca = null, port = 8443} = {}){
+function setWebhook(url, key, cert, {port = 8443} = {}){
     let options = {
         key: fs.readFileSync(key, 'utf8'), 
         cert: fs.readFileSync(cert, 'utf8'),
         port
     };
-    if(ca !== null)
-        options.ca = [fs.readFileSync(ca, 'utf8')];
     let server = https.createServer(options, (req, res) => {
         debug(`${req.method} ${req.url} requested`);
         if(req.url == '/webhook'){

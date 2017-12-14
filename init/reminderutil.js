@@ -3,6 +3,9 @@ const keyboard = require('../utils/keyboard');
 const moment = require('moment');
 const loop = require('../utils/loop');
 const regex = /remind_(add|subtract)_([a-z0-9]+)/;
+const db = require('../utils/db');
+const Reminder = require('../models/reminder');
+const debug = require('../utils/debug');
 const dateIntervals = {
     minute: [1, 'minute'],
     '15minutes': [15, 'minute'],
@@ -12,6 +15,9 @@ const dateIntervals = {
     week: [1, 'week'],
     month: [1, 'month']
 };
+/**
+ * @type {Reminder[]}
+ */
 const reminders = [];
 for(let val in dateIntervals) {
     keyboard.registerCallback(`remind_add_${val}`, onButtonPushed);
@@ -29,10 +35,12 @@ const defaultKeyboard = [
 ];
 const defaultKeyboardWithOk = [...Array.from(defaultKeyboard), [keyboard.button('OK', 'remind_ok')]];
 
+/**
+ * @type {Object.<string, Reminder>}
+ */
 let registry = {};
 
-bot.registerSlashCommand('reminder', 'Sets a custom reminder', (msg, slashCmd, ...params) => {
-    console.log(slashCmd, params)
+bot.registerSlashCommand('reminder', 'Sets a custom reminder. Use \'/reminder [message]\' for a custom message.', (msg, slashCmd, ...params) => {
     let mom = moment();
     bot.sendMessage({
         chatId: msg.chat.id,
@@ -42,11 +50,13 @@ bot.registerSlashCommand('reminder', 'Sets a custom reminder', (msg, slashCmd, .
         callback: result => {
             if(!result.ok) return;
             let registryKey = getId(result.result);
-            registry[registryKey] = {
-                text: params.length > 0 && params.join(' ') || 'You wanted me to remind you!',
-                moment: mom,
-                chat: msg.chat.id
-            };
+            registry[registryKey] = new Reminder(
+                params.length > 0 && params.join(' ') || 'You wanted me to remind you!',
+                mom,
+                msg.chat.id
+            );
+            registry[registryKey].from = msg.from.id;
+            debug(registry[registryKey]);
         }
     });
 });
@@ -69,14 +79,19 @@ function parseDate(moment){
 function onOk(msg){
     let id = getId(msg.message);
     let register = registry[id];
+    if(!register) return;
+    if(registry[id].from != msg.from.id) return;
     delete registry[id];
     msg.answered = true;
     let callback;
     if(!register)
-    {
-        callback =  'Something went wrong. Try again!';;
-    }else{
+        callback =  'Something went wrong. Try again!';
+    else{
         reminders.push(register);
+        db.getCollection('reminders', collection => {
+            collection.add(register.toDbObject());
+            collection.saveChanges();
+        });
         callback = `You will be reminded at ${parseDate(register.moment)}`;
     }
     bot.answerCallbackQuery(msg.id, {callback: () => {
@@ -89,7 +104,6 @@ function onButtonPushed(msg){
         console.error('Something odd happened', msg);
         return;
     }
-    msg.answered = true;
     let [match, addOrSub, method] = msg.data.match(regex);
     let options = dateIntervals[method];
     let id = getId(msg.message);
@@ -100,15 +114,22 @@ function onButtonPushed(msg){
         }});
         return;
     }
+    if(msg.from.id != registry[id].from)
+        return;
     let currentTime = registry[id].moment;
     currentTime[addOrSub](...options);
+    msg.answered = true;
     bot.answerCallbackQuery(msg.id, {callback: () => {
         bot.editMessage(msg.message.chat.id, msg.message.message_id, getText(currentTime), {
             keyboard: moment().isBefore(currentTime) && defaultKeyboardWithOk || defaultKeyboard
         });
     }});
 }
-
+db.getCollection('reminders', dbCollection => {
+    dbCollection.items.forEach(item => {
+        reminders.push(Reminder.fromDbObject(item));
+    });
+});
 loop.subscribe(() => {
     let now = moment();
     let notRemoved = [];
@@ -118,6 +139,10 @@ loop.subscribe(() => {
             bot.sendMessage({
                 chatId: entry.chat,
                 message: entry.text
+            });
+            db.getCollection('reminders', collection => {
+                collection.delete(entry.toDbObject());
+                collection.saveChanges();
             });
             reminders.splice(i, 1);
         }

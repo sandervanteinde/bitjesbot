@@ -1,6 +1,7 @@
 const bot = require('./bot');
 const keyboard = require('../utils/keyboard');
 const moment = require('moment');
+require('moment-timezone');
 const loop = require('../utils/loop');
 const regex = /remind_(add|subtract)_([a-z0-9]+)/;
 const db = require('../utils/db');
@@ -148,3 +149,4 @@ loop.subscribe(() => {
         }
     };
 });
+moment.tz.setDefault('Europe/Amsterdam');

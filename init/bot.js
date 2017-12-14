@@ -114,15 +114,16 @@ function pollMessage(){
         polling = false;
     });
 }
-function setWebhook(url){
-    server.registerRoute(`/${config.API_KEY}`, (req, res) => {
-        bodyparser.parseJson(req, body => {
+function setWebhook(domain){
+    server.registerRoute(`/${config.API_KEY}`, (request) => {
+        bodyparser.parseJson(request.request, body => {
             onMessageReceived(body);
-            res.statusCode = 200;
-            res.end();
+            request.success();
         });
     });
-    callApiMethod('setWebhook', `${url}/${config.API_KEY}`);
+    let webhookUrl = `https://${domain}/${config.API_KEY}`;
+    log.debug(`Setting webhook to: ${webhookUrl}`);
+    callApiMethod('setWebhook', {url: webhookUrl});
 }
 function helpCallback(msg){
     commands = [];
@@ -150,10 +151,10 @@ function editMessage(chat_id, message_id, text, {keyboard = null} = {}){
         options.reply_markup = {inline_keyboard: keyboard};
     callApiMethod('editMessageText', options);
 }
-if(config.webhook){
+if(config.domain){
     if(config.cert === null || config.key === null)
         throw "Webhooks require a certificate and key to run a server!";
-    setWebhook(config.webhook, config.key, config.cert, config);
+    setWebhook(config.domain, config.key, config.cert, config);
 }
 else{
     deleteWebhook();

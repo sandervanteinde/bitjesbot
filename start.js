@@ -12,8 +12,8 @@ fs.readdir('./init', (err, files) => {
 });
 
 //Configure website if enabled
-if(config.enableWebsite || config.webhook){
-    if(config.webhook && (!config.key || !config.cert))
+if(config.enableWebsite || config.domain){
+    if(config.domain && (!config.key || !config.cert))
         throw 'A key and certificate is required for webhooks!';
     server.startNormal(80);
     if(config.key && config.cert)
@@ -23,7 +23,7 @@ if(config.enableWebsite || config.webhook){
         let cert = null;
         let onDone = () => {
             if(key == null || cert == null) return;
-            server.startSecure({key,cert,port});
+            server.startSecure({key,cert, port: config.port});
         }
         fs.readFile(config.key,{encoding: 'utf8'}, (err, data) => {
             key = data;

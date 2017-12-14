@@ -1,5 +1,5 @@
 const fs = require('fs');
-const debug = require('./debug');
+const log = require('./log');
 
 class Database {
     constructor(){
@@ -43,7 +43,7 @@ class Collection {
         });
     }
     saveChanges(){
-        debug(`saving collection ${this.getName()}`);
+        log.debug(`saving collection ${this.getName()}`);
         let filePath = this.filePath();
         fs.writeFile(filePath, JSON.stringify(this.items), {flag: 'w'}, (err) => {
             if(err) throw err;

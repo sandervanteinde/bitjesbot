@@ -4,7 +4,8 @@ const config = require('../config');
 const bodyparser = require('../utils/bodyparser');
 const keyboard = require('../utils/keyboard');
 const fs = require('fs');
-const debug = require('../utils/debug');
+const log = require('../utils/log');
+const server = require('../utils/server');
 let slashCommands = {};
 
 let polling = false;
@@ -14,7 +15,7 @@ let url = `bot${config.API_KEY}`;
 /**
  * @param {string} command
  * @param {string} help
- * @param {function} callback 
+ * @param {function(object,string,string[]):void} callback 
  */
 function registerSlashCommand(command, help, callback){
     if(slashCommands[command])
@@ -74,7 +75,7 @@ function sendUnknownCommand(msg){
 function processTextMessage(msg){
     let [command, ...args] = msg.text.split(' ');
     if(command[0] != '/') return; // we do not handle slash commands
-    command = command.substring(1);
+    command = command.substring(1).toLowerCase();
     let callback = slashCommands[command];
     if(callback){
         callback.callback(msg, command, ...args);
@@ -113,32 +114,15 @@ function pollMessage(){
         polling = false;
     });
 }
-function setWebhook(url, key, cert, {port = 8443} = {}){
-    let options = {
-        key: fs.readFileSync(key, 'utf8'), 
-        cert: fs.readFileSync(cert, 'utf8'),
-        port
-    };
-    let server = https.createServer(options, (req, res) => {
-        debug(`${req.method} ${req.url} requested`);
-        if(req.url == '/webhook'){
-            bodyparser.parseJson(req, body => {
-                onMessageReceived(body);
-                res.setHeader('Content-Type', 'text/plain');
-                res.write('hello secure world');
-                res.end();
-            });
-        }else{
-            res.write('hello secure world');
+function setWebhook(url){
+    server.registerRoute(`/${config.API_KEY}`, (req, res) => {
+        bodyparser.parseJson(req, body => {
+            onMessageReceived(body);
+            res.statusCode = 200;
             res.end();
-        }
+        });
     });
-    server.on('connection', (conn) => {
-        debug(`Connection incoming from ${conn.remoteAddress}`);
-    });
-    server.listen(port);
-    callApiMethod('setWebhook', {url});
-    console.log(`Webhook is listening on port ${port}`);
+    callApiMethod('setWebhook', `${url}/${config.API_KEY}`);
 }
 function helpCallback(msg){
     commands = [];
@@ -147,6 +131,9 @@ function helpCallback(msg){
     }
     let sendMsg = `Available commands:\n\n${commands.join('\n')}`;
     sendMessage({chatId: msg.chat.id, message: sendMsg});
+}
+function aboutCallback(msg){
+    sendMessage({chatId: msg.chat.id, message: 'This bot is made by Sande van \'t Einde.\nYou can view the source at https://www.github.com/sandervanteinde/bitjesbot'});
 }
 function answerCallbackQuery(id, {callback = null} = {}){
     callApiMethod('answerCallbackQuery', {callback_query_id: id}, callback);
@@ -172,7 +159,8 @@ else{
     deleteWebhook();
     loop.subscribe(pollMessage);
 }
-registerSlashCommand('help', 'This command', helpCallback)
+registerSlashCommand('help', 'This command', helpCallback);
+registerSlashCommand('about', 'About this bot', aboutCallback);
 
 module.exports = {
     sendMessage,
@@ -180,4 +168,4 @@ module.exports = {
     answerCallbackQuery,
     editMessage
 };
-console.log('Bot started!');
+log.info('Bot started!');

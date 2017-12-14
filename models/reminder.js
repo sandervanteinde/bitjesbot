@@ -1,4 +1,3 @@
-const debug = require('../utils/debug');
 const moment = require('moment');
 /**
  * @alias models:Reminder

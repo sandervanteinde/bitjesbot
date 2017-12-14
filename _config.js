@@ -4,5 +4,7 @@ module.exports = {
     cert: null,
     webhook: null,
     port: null,
-    loggingLevel: 3 //1 == debug, 2 = warning, 3 = error
+    loggingLevel: 3, //1 == debug, 2 = warning, 3 = error
+    enableWebsite: true,
+    websiteDirectory: './www'
 }

@@ -6,7 +6,7 @@ const loop = require('../utils/loop');
 const regex = /remind_(add|subtract)_([a-z0-9]+)/;
 const db = require('../utils/db');
 const Reminder = require('../models/reminder');
-const debug = require('../utils/debug');
+const log = require('../utils/log');
 const dateIntervals = {
     minute: [1, 'minute'],
     '15minutes': [15, 'minute'],
@@ -57,7 +57,7 @@ bot.registerSlashCommand('reminder', 'Sets a custom reminder. Use \'/reminder [m
                 msg.chat.id
             );
             registry[registryKey].from = msg.from.id;
-            debug(registry[registryKey]);
+            log.debug(registry[registryKey]);
         }
     });
 });

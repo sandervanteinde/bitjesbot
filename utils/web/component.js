@@ -13,7 +13,7 @@ function parseIfs(component, html){
     while((endIf = html.indexOf('@endif', endIf + 1)) >= 0){
         let index = html.lastIndexOf('@if', endIf - 1);
         let endLineIf = html.indexOf('\n', index + 1);
-        let statement = html.substring(index + 4, endLineIf - 1);
+        let statement = html.substring(index + 4, endLineIf);
         if(endIf == -1)
             throw 'Parse error';
         let endLineEnd = endIf + 6;

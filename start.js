@@ -2,6 +2,7 @@ const loop = require('./utils/loop');
 const config = require('./config');
 const server = require('./utils/server');
 const log = require('./utils/log');
+const ws = require('./utils/web/websocket');
 
 //load init directory
 const fs = require('fs');
@@ -15,7 +16,8 @@ fs.readdir('./init', (err, files) => {
 if(config.enableWebsite || config.domain){
     if(config.domain && (!config.key || !config.cert))
         throw 'A key and certificate is required for webhooks!';
-    server.startNormal(80);
+    server.startNormal(config.webPort);
+    ws.start(8000);
     if(config.key && config.cert)
     {
         log.debug('Loading key and certificates');

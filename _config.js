@@ -6,5 +6,7 @@ module.exports = {
     port: null,
     loggingLevel: 3, //1 == debug, 2 = warning, 3 = error
     enableWebsite: true,
-    websiteDirectory: './www'
+    websiteDirectory: './www',
+    webPort: 80,
+    botName: null
 }

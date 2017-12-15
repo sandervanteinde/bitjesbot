@@ -7,8 +7,16 @@ const regex = /remind_(add|subtract)_([a-z0-9]+)/;
 const db = require('../utils/db');
 const Reminder = require('../models/reminder');
 const log = require('../utils/log');
+const ws = require('../utils/web/websocket');
+const config = require('../config');
 
 class ReminderUtil{
+    /**
+     * @returns {number}
+     */
+    get pendingRequests(){
+        return this.reminders.length;
+    }
     constructor(){
         this.dateIntervals = {
             minute: [1, 'minute'],

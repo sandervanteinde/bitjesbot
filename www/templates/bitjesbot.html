@@ -1,0 +1,25 @@
+<h4>Bitjes bot info</h4>
+<table class="striped">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Open requests</td>
+            <td>{{pending}}</td>
+        </tr>
+    </tbody>
+</table>
+@if !this.telegramLink
+<button class="btn waves">
+    Connect Telegram!
+</button>
+@else
+<h4>Your reminders</h4>
+<table>
+
+</table>
+@endif

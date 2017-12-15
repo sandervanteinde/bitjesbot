@@ -1,8 +1,15 @@
 {
   "requires": true,
   "lockfileVersion": 1,
+  "description": "Solution for the BitjesBot telegram bot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandervanteinde/bitjesbot.git"
+  },
+  "license": "MIT",
   "dependencies": {
     "moment": "^2.19.4",
-    "moment-timezone": "^0.5.14"
+    "moment-timezone": "^0.5.14",
+    "nodejs-websocket": "^1.7.1"
   }
 }

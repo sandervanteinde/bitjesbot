@@ -84,6 +84,7 @@ function processTextMessage(msg){
     }
 }
 function processMessage(msg){
+    log.debug(msg);
     if(msg.text)
         processTextMessage(msg);
     else

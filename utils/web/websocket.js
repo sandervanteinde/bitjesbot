@@ -1,7 +1,9 @@
 const ws = require('nodejs-websocket');
 const log = require('../log');
 const connect = require('../telegramconnect');
+const config = require('../../config');
 const bot = require('../../init/bot');
+const fs = require('fs');
 class WebSocketHandler{
     constructor(){
         this.running = false;
@@ -26,11 +28,17 @@ class WebSocketHandler{
     send(connection, id, content){
         connection.send(JSON.stringify({id, content}))
     }
-    start(port){
+    start(port, key, cert){
         if(this.running) return;
         this.running = true;
-        
-        let server = ws.createServer(conn => {
+        let options = {secure: Boolean(key), validProtocols: ['ws:']};
+        if(options.secure)
+        {
+            options.validProtocols.push('wss:');
+            options.cert = cert;
+            options.key = key;
+        }
+        let server = ws.createServer(options,conn => {
             this.connections[conn] = true;
             conn.on('text', text => this.textReceived(conn, text));
             conn.on('close', (code, reason) => {
@@ -41,8 +49,9 @@ class WebSocketHandler{
                 this.connectionClosed(conn);
             });
         });
+        server.on('listening', () => log.debug(`websocket listening on port ${port}`));
         server.listen(port);
-        log.debug(`websocket listening on port ${port}`)
+        
 
     }
     textReceived(connection, text){

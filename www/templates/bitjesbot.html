@@ -14,12 +14,28 @@
     </tbody>
 </table>
 @if !this.telegramLink
-<button class="btn waves">
-    Connect Telegram!
-</button>
+    <button class="btn waves">
+        Connect Telegram!
+    </button>
 @else
-<h4>Your reminders</h4>
-<table>
-
-</table>
+    <h4>Your reminders</h4>
+    @if this.reminders.length == 0
+        <p>You have no reminders set</p>
+    @endif
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Reminder</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for let reminder of this.reminders
+                <tr>
+                    <td></td>
+                    <td></td>
+                </tr>
+            @endfor
+        </tbody>
+    </table>
 @endif

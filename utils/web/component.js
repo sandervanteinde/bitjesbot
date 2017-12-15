@@ -1,5 +1,6 @@
 const fs = require('fs');
 const variableRegex = /{{([a-z.])}}/i;
+const forRegex = /let ([a-z]+) (in|of) ([a-z.]+)/;
 const config = require('../../config');
 const Request = require('../request');
 
@@ -38,6 +39,38 @@ function parseIfs(component, html){
         endIf = index;
         delete component.__if;
 
+    }
+    return html;
+}
+/**
+ * @param {Component} component 
+ * @param {string} html 
+ */
+function parseFors(component, html){
+    let endFor;
+    while((endFor = html.indexOf('@endfor')) >= 0){
+        let end = endFor + 7;
+        let start = html.lastIndexOf('@for', endFor);
+        let endStart = html.indexOf('\n', start);
+        let statement = html.substring(start + 4, endStart);
+        console.log(statement);
+        let match = statement.match(forRegex);
+        if(!match)
+            throw 'Invalid for statement';
+        let [fullMatch, varName, loopType, collection] = match;
+        let innerLoop = html.substring(endStart + 1, endFor - 1);
+        component.__for = eval(`(function(callback){
+            for(let item ${loopType} ${collection})
+                callback(item);
+        })`);
+        let replacements = [];
+        component.__for(item => {
+            replacements.push(innerLoop);
+        });
+        let fullContent = html.substring(start, end);
+        html = html.replace(fullContent, replacements.join('\n'));
+        delete component.__for;
+        endFor = start;
     }
     return html;
 }
@@ -86,6 +119,7 @@ class Component{
         fs.readFile(`${config.websiteDirectory}/templates/${this.getTemplate()}`, {encoding: 'utf8'}, (err, data) => {
             if(err) 
                 throw err;
+            data = parseFors(this, data);
             data = parseIfs(this, data);
             let m;
             while(m = variableRegex.exec(data)){

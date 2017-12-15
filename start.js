@@ -17,16 +17,15 @@ if(config.enableWebsite || config.domain){
     if(config.domain && (!config.key || !config.cert))
         throw 'A key and certificate is required for webhooks!';
     server.startNormal(config.webPort);
-    ws.start(8000);
     if(config.key && config.cert)
     {
-        log.debug('Loading key and certificates');
         let key = null;
         let cert = null;
         let onDone = () => {
             if(key == null || cert == null) return;
             
             server.startSecure({key,cert, port: config.port});
+            ws.start(8000, key, cert);
         }
         fs.readFile(config.key,{encoding: 'utf8'}, (err, data) => {
             key = data;
@@ -36,7 +35,10 @@ if(config.enableWebsite || config.domain){
             cert = data;
             onDone();
         });
+    }else{
+        ws.start(8000);
     }
+
 }
 
 //start the loop

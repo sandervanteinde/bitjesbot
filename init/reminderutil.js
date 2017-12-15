@@ -163,5 +163,16 @@ class ReminderUtil{
             });
         }});
     }
+    /**
+     * @param {number} id 
+     * @returns {Reminder[]}
+     */
+    getRemindersForId(id){
+        let arr = [];
+        for(let reminder of this.reminders)
+            if(reminder.chat == id)
+                arr.push(reminder);
+        return arr;
+    }
 }
 module.exports = new ReminderUtil();

@@ -13,7 +13,8 @@ class BitjesBot extends Component{
         let key = request.cookies.key;
         if(key){
             let id = connect.getIdFromGUID(key);
-            this.reminders = [];
+            this.reminders = reminderutil.getRemindersForId(id);
+            console.log('reminders', this.reminders);
         }else{
             this.reminders = [];
         }

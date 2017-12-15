@@ -27,7 +27,7 @@ let botName;
     onWebSocket = (func) => {
         callbacks.push(func);
     }
-    let ws = new WebSocket(`ws${window.location.protocol == 'https' && 's' || ''}://${window.location.hostname}:8000`);
+    let ws = new WebSocket(`ws${window.location.protocol == 'https:' && 's' || ''}://${window.location.hostname}:8000`);
     /**
      * @type {Object.<string,Function>}
      */
@@ -50,6 +50,7 @@ let botName;
         if(obj.id == 'telegramlink'){
             key = obj.content;
             document.cookie = `key=${key}`;
+            location.reload();
             return;
         }
         if(handler)

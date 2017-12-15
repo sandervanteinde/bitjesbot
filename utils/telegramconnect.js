@@ -62,6 +62,9 @@ class TelegramConnect{
         this.collection.saveChanges();
         return guid;
     }
+    getIdFromGUID(guid){
+        return this.linkGUIDs[guid];
+    }
 }
 
 module.exports = new TelegramConnect();

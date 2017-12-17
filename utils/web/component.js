@@ -56,7 +56,6 @@ function parseFors(scope, html){
     if(!match)
         throw 'Invalid for statement';
     let [fullMatch, varName, loopType, collection] = match;
-    console.log(varName, collection);
     let innerLoop = html.substring(endStart + 1, endFor - 1);
     scope.__for = eval(`(function(callback){
         let __i = 0;

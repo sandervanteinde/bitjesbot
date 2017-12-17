@@ -4,7 +4,6 @@ const fs = require('fs');
 const Component = require('./component');
 const config = require('../../config');
 const Request = require('../request');
-const mime = require('mime-types');
 class Handler{
     constructor(){
         if(this.constructor === Handler)
@@ -66,11 +65,11 @@ class FileHandler extends Handler{
      */
     handleRequest(request){
         let path = request.path;
-        fs.readFile(path, (err, buffer)=> {
-            if(err) throw err;
-            console.log(mime.lookup(path));
-            request.success(buffer, {mime: mime.lookup(path)});
-        });
+        request.setMimeForPath(path);
+        request.setResponseStatusCode(200);
+        let stream = fs.createReadStream(path)
+            .on('data', chunk => request.write(chunk))
+            .on('end', () => request.success());
     }
 }
 module.exports = {

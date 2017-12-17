@@ -1,4 +1,5 @@
 const config = require('../config');
+const mime = require('mime-types');
 /**
  * @param {Request} request 
  * @param {string} cookieString 
@@ -33,12 +34,12 @@ class Request{
         this.response.statusCode = 404;
         this.response.end();
     }
-    success(data, {mime = 'text/html'} = {}){
-        this.response.statusCode = 200;
-        console.log(mime);
-        this.response.setHeader('Content-Type', mime);
+    success(data, {mime = undefined} = {}){
+        this.setResponseStatusCode(200);
+        if(mime)
+            this.response.setHeader('Content-Type', mime);
         if(data)
-            this.response.write(data);
+            this.write(data);
         this.response.end();
     }
     /**
@@ -49,6 +50,24 @@ class Request{
         this.response.statusCode = 302;
         this.response.setHeader('Location', (url.startsWith('http://') || url.startsWith('https://')) && url || `http${this.server.runningSecure && 's' || ''}://${config.domain}${url}`);
         this.response.end();
+    }
+    /**
+     * @param {string} path 
+     */
+    setMimeForPath(path){
+        this.response.setHeader('Content-Type', mime.lookup(path));
+    }
+    /**
+     * @param {number} code 
+     */
+    setResponseStatusCode(code){
+        this.response.statusCode = code;
+    }
+    /**
+     * @param {string|Buffer} data 
+     */
+    write(data){
+        this.response.write(data);
     }
     /**
      * @returns {string}

@@ -34,9 +34,9 @@ class UrlResolver{
                         if(!handler){
                             handler = this.getHandlerForUrl(parsedUrl);
                         }
-                        callback(true, parsedUrl, handler);
-                        return;
+                        return callback(true, parsedUrl, handler);
                     }
+                    return attemptIndex(index + 1);
                 });
             });
         }

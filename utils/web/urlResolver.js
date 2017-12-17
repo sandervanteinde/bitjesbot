@@ -19,22 +19,29 @@ class UrlResolver{
      */
     resolve(url, callback)
     {
-        log.debug(`attempting to resolve: ${url}`);
-        for(let pair of this.strategies){
-            let [strategy, handler] = pair;
+        let attemptIndex = index=> {
+            if(index >= this.strategies.length)
+                return callback(false, null, null);
+            let [strategy, handler] = this.strategies[index];
             let parsedUrl = strategy.replace('{url}', url);
-            if(fs.existsSync(parsedUrl)){
-                let stats = fs.statSync(parsedUrl);
-                if(!stats.isDirectory()){
-                    if(!handler){
-                        handler = this.getHandlerForUrl(parsedUrl);
+            fs.exists(parsedUrl, exists => {
+                if(!exists)
+                    return attemptIndex(index + 1);
+                
+                fs.stat(parsedUrl, (err, stats) => {
+                    if(err) throw err;
+                    if(!stats.isDirectory()){
+                        if(!handler){
+                            handler = this.getHandlerForUrl(parsedUrl);
+                        }
+                        callback(true, parsedUrl, handler);
+                        return;
                     }
-                    callback(true, parsedUrl, handler);
-                    return;
-                }
-            }
+                });
+            });
         }
-        callback(false, null);
+        log.debug(`attempting to resolve: ${url}`);
+        attemptIndex(0);
     }
     /**
      * @param {string} url 

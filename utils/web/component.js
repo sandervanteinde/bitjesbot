@@ -1,14 +1,15 @@
 const fs = require('fs');
-const variableRegex = /{{([a-z.])}}/i;
-const forRegex = /let ([a-z]+) (in|of) ([a-z.]+)/;
+const forRegex = /let ([a-z]+) (in|of) (.+)/;
+const variableRegex = /{{(.+?)}}/gi;
 const config = require('../../config');
 const Request = require('../request');
+const ScopedExecution = require('../scopedexecution');
 
 /**
- * @param {Component} component 
+ * @param {ScopedExecution} scope 
  * @param {string} html 
  */
-function parseIfs(component, html){
+function parseIfs(scope, html){
     let endIf;
     while((endIf = html.indexOf('@endif', endIf + 1)) >= 0){
         let index = html.lastIndexOf('@if', endIf - 1);
@@ -28,72 +29,73 @@ function parseIfs(component, html){
             trueContent = () => html.substring(endLineIf + 1, endIf);
             falseContent = () => '';
         }
-        component.__if = eval(`(function(){ return ${statement}; })`);
+        let result = scope.execute(statement);
         let fullContent = html.substring(index, endLineEnd);
-        if(component.__if()){
+        if(result){
             html = html.replace(fullContent, trueContent());
         }
         else{
             html = html.replace(fullContent, falseContent());
         }
         endIf = index;
-        delete component.__if;
-
     }
     return html;
 }
 /**
- * @param {Component} component 
+ * @param {ScopedExecution} scope 
  * @param {string} html 
  */
-function parseFors(component, html){
-    let endFor;
-    while((endFor = html.indexOf('@endfor')) >= 0){
-        let end = endFor + 7;
-        let start = html.lastIndexOf('@for', endFor);
-        let endStart = html.indexOf('\n', start);
-        let statement = html.substring(start + 4, endStart);
-        console.log(statement);
-        let match = statement.match(forRegex);
-        if(!match)
-            throw 'Invalid for statement';
-        let [fullMatch, varName, loopType, collection] = match;
-        let innerLoop = html.substring(endStart + 1, endFor - 1);
-        component.__for = eval(`(function(callback){
-            for(let item ${loopType} ${collection})
-                callback(item);
-        })`);
-        let replacements = [];
-        component.__for(item => {
-            replacements.push(innerLoop);
-        });
-        let fullContent = html.substring(start, end);
-        html = html.replace(fullContent, replacements.join('\n'));
-        delete component.__for;
-        endFor = start;
+function parseFors(scope, html){
+    let endFor = html.lastIndexOf('@endfor');
+    if(endFor == -1) return html;
+    let end = endFor + 7;
+    let start = html.indexOf('@for');
+    let endStart = html.indexOf('\n', start);
+    let statement = html.substring(start + 4, endStart);
+    let match = statement.match(forRegex);
+    if(!match)
+        throw 'Invalid for statement';
+    let [fullMatch, varName, loopType, collection] = match;
+    console.log(varName, collection);
+    let innerLoop = html.substring(endStart + 1, endFor - 1);
+    scope.__for = eval(`(function(callback){
+        let __i = 0;
+        for(let item ${loopType} ${collection})
+            callback(item, __i++);
+    })`);
+    let replacements = [];
+    scope.__for((item, i) => {
+        scope.addToScope(varName, item);
+        replacements.push(parseHTML(scope, innerLoop));
+        scope.removeFromScope(varName, item);
+    });
+    let fullContent = html.substring(start, end);
+    html = html.replace(fullContent, replacements.join('\n'));
+    delete scope.__for;
+    endFor = start;
+    return html;
+}
+/**
+ * 
+ * @param {ScopedExecution} scope 
+ * @param {string} html 
+ */
+function parseVariables(scope, html){
+    let m;
+    while(m = variableRegex.exec(html)){
+        let [match, string] = m;
+        let result = scope.execute(string);
+        html = html.replace(match, result && result.toString() || '');
     }
     return html;
 }
-
 /**
- * @param {string[]} string
- * @returns {any}
+ * @param {ScopedExecution} scope 
+ * @param {string} html 
  */
-function interpretStringArr(string, obj){
-    if(string.length == 0) throw 'invalid argument. Require atleast one argument';
-    if(string.length == 1) return obj[string[0]];
-    let [arg, ...other] = string;
-    return interpretStringArr(other, obj[arg]);
+function parseHTML(scope, html){
+    return parseVariables(scope, parseIfs(scope, parseFors(scope, html)));
 }
-/**
- * @param {string} string 
- * @returns {any}
- */
-function interpretString(string, obj){
-    let arr = string.split('.');
-    return interpretStringArr(arr, obj);
-}
-
 class Component{
     constructor(){
         if(this.constructor === Component)
@@ -115,18 +117,13 @@ class Component{
      */
     parseHTML(request, callback){
         this.telegramLink = request.cookies.key;
-        let variableRegex = /{{([a-z\.]+)}}/gi;
         fs.readFile(`${config.websiteDirectory}/templates/${this.getTemplate()}`, {encoding: 'utf8'}, (err, data) => {
+            let scope = new ScopedExecution(this);
+            scope.setScope();
+            data = parseHTML(scope, data);
+            scope.unsetScope();
             if(err) 
                 throw err;
-            data = parseFors(this, data);
-            data = parseIfs(this, data);
-            let m;
-            while(m = variableRegex.exec(data)){
-                let [match, string] = m;
-                let result = interpretString(string, this);
-                data = data.replace(match, result.toString())
-            }
             callback(data);
         });
     }

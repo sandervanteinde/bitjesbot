@@ -1,4 +1,4 @@
-
+const config = require('../config');
 /**
  * @param {Request} request 
  * @param {string} cookieString 

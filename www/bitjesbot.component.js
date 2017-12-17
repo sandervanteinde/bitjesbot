@@ -14,13 +14,10 @@ class BitjesBot extends Component{
         if(key){
             let id = connect.getIdFromGUID(key);
             this.reminders = reminderutil.getRemindersForId(id);
-            console.log('reminders', this.reminders);
         }else{
             this.reminders = [];
         }
-    }
-    get pending(){
-        return reminderutil.pendingRequests;
+        this.pending = reminderutil.pendingRequests;
     }
     getTemplate(){
         return 'bitjesbot.html';

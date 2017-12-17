@@ -13,13 +13,13 @@
         </tr>
     </tbody>
 </table>
-@if !this.telegramLink
+@if !telegramLink
     <button class="btn waves">
         Connect Telegram!
     </button>
 @else
     <h4>Your reminders</h4>
-    @if this.reminders.length == 0
+    @if reminders.length == 0
         <p>You have no reminders set</p>
     @endif
     <table>
@@ -30,10 +30,10 @@
             </tr>
         </thead>
         <tbody>
-            @for let reminder of this.reminders
+            @for let reminder of reminders
                 <tr>
-                    <td></td>
-                    <td></td>
+                    <td>{{reminder.moment.format('dddd D MMMM H:mm')}}</td>
+                    <td>{{reminder.text}}</td>
                 </tr>
             @endfor
         </tbody>

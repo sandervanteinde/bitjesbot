@@ -3,6 +3,8 @@ const log = require('../log');
 const fs = require('fs');
 const Component = require('./component');
 const config = require('../../config');
+const Request = require('../request');
+const mime = require('mime-types');
 class Handler{
     constructor(){
         if(this.constructor === Handler)
@@ -27,11 +29,15 @@ class ComponentParser extends Handler{
             });
         }
     }
+    /**
+     * 
+     * @param {Request} request 
+     */
     handleRequest(request){
         /**
          * @type {Component}
          */
-        let component = new (require.main.require(request.getPath()))(request);
+        let component = new (require.main.require(request.path))(request);
         component.parseHTML(request, html => {
             if(this.index){
                 html = this.index.replace(componentRegex, html);
@@ -59,9 +65,11 @@ class FileHandler extends Handler{
      * @param {Request} request 
      */
     handleRequest(request){
-        fs.readFile(request.getPath(), (err, buffer)=> {
+        let path = request.path;
+        fs.readFile(path, (err, buffer)=> {
             if(err) throw err;
-            request.success(buffer);
+            console.log(mime.lookup(path));
+            request.success(buffer, {mime: mime.lookup(path)});
         });
     }
 }

@@ -33,8 +33,10 @@ class Request{
         this.response.statusCode = 404;
         this.response.end();
     }
-    success(data){
+    success(data, {mime = 'text/html'} = {}){
         this.response.statusCode = 200;
+        console.log(mime);
+        this.response.setHeader('Content-Type', mime);
         if(data)
             this.response.write(data);
         this.response.end();
@@ -51,13 +53,13 @@ class Request{
     /**
      * @returns {string}
      */
-    getPath(){
+    get path(){
         return this.request.url;
     }
     /**
      * @returns {string}
      */
-    getMethod(){
+    get method(){
         return this.request.method;
     }
 }

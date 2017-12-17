@@ -23,11 +23,11 @@ class Server{
     handleRequest(request){
         if((!request.isSecure) && this.runningSecure){
             log.debug('rerouting to secure website');
-            return request.redirect(request.getPath());
+            return request.redirect(request.path);
         }
 
-        let path = request.getPath();
-        let method = request.getMethod();
+        let path = request.path;
+        let method = request.method;
         if(this.routes[path]){
             log.debug(`[${method}] ${path}`)
             this.routes[path](request);

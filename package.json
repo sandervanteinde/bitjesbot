@@ -8,6 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "mime-types": "^2.1.17",
     "moment": "^2.19.4",
     "moment-timezone": "^0.5.14",
     "nodejs-websocket": "^1.7.1"

@@ -42,6 +42,13 @@ class Request{
             this.write(data);
         this.response.end();
     }
+    setCookie(key, value){
+        if(value === null){
+            this.response.setHeader('Set-Cookie', `${key}=__DELETED__; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+        }else{
+            this.response.setHeader('Set-Cookie', `${key}=${value}`);
+        }
+    }
     /**
      * 
      * @param {string} url 

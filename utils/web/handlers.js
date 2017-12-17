@@ -14,7 +14,7 @@ class Handler{
      */
     handleRequest(){throw 'The extending class did not inherit handleRequest';}
 }
-const componentRegex = /<component>(.*)<\/component>/;
+const componentRegex = /<component>.*<\/component>/;
 class ComponentParser extends Handler{
     constructor(){
         super();
@@ -22,9 +22,20 @@ class ComponentParser extends Handler{
         if(fs.existsSync(indexLocation)){
             log.debug('found index file for templates');
             fs.readFile(indexLocation, {encoding: 'utf8'}, (err, data) =>{
-                if(!data.match(ComponentParser.componentRegex))
-                    throw 'A _index.html template requires a <component></component> tag';
-                this.index = data.replace('{{botname}}', config.botName);
+                data = data.replace('{{botname}}', config.botName);
+                let match = data.match(componentRegex);
+                if(!match)
+                    throw 'An _index.html template requires a <component></component> tag';
+                let [matchString] = match;
+                let startIndex = match.index;
+                let endIndex = startIndex + matchString.length;
+                let scriptsIndex = data.indexOf('@scripts');
+                if(scriptsIndex == -1)
+                    throw 'An @scripts tag is required for scripts';
+                let endScriptsIndex = scriptsIndex + 8;
+                this.preScripts = data.substring(0, scriptsIndex);
+                this.postScripts = data.substring(endScriptsIndex,this.startIndex);
+                this.postBody = data.substr(endIndex);
             });
         }
     }
@@ -37,25 +48,25 @@ class ComponentParser extends Handler{
          * @type {Component}
          */
         let component = new (require.main.require(request.path))(request);
-        component.parseHTML(request, html => {
-            if(this.index){
-                html = this.index.replace(componentRegex, html);
-                html = html.replace('@scripts', this.parseScripts(component.scripts));
-            }
-            request.success(html);
+        request.setResponseStatusCode(200);
+        request.setMimeForPath('text/html');
+        request.write(this.preScripts);
+        this.parseScripts(component.scripts, request)
+        request.write(this.postScripts);
+        component.writeHTML(request, () => {
+            request.write(this.postBody);
+            request.success();
         });
     }
     /**
      * @param {string[]} scripts 
-     * @returns {string}
+     * @param {Request} request
      */
-    parseScripts(scripts){
-        if(!scripts || scripts.length == 0) return '';
-        let asScript = [];
+    parseScripts(scripts, request){
+        if(!scripts || scripts.length == 0) return;
         scripts.forEach(el => {
-            asScript.push(`<script defer src="${el}"></script>`);
+            request.write(`<script defer src="${el}"></script>\n`);
         });
-        return asScript.join('\n');
     }
 }
 class FileHandler extends Handler{

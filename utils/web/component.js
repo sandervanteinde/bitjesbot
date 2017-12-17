@@ -4,105 +4,104 @@ const variableRegex = /{{(.+?)}}/gi;
 const config = require('../../config');
 const Request = require('../request');
 const ScopedExecution = require('../scopedexecution');
-
-/**
- * @param {ScopedExecution} scope 
- * @param {string} html 
- */
-function parseIfs(scope, html){
-    let endIf;
-    while((endIf = html.indexOf('@endif', endIf + 1)) >= 0){
-        let index = html.lastIndexOf('@if', endIf - 1);
-        let endLineIf = html.indexOf('\n', index + 1);
-        let statement = html.substring(index + 4, endLineIf);
-        if(endIf == -1)
-            throw 'Parse error';
-        let endLineEnd = endIf + 6;
-        let els = html.indexOf('@else', endLineIf + 1);
-        let trueContent;
-        let falseContent;
-        if(els != -1 && els < endIf){
-            let endLineEls = els + 5;
-            trueContent = () => html.substring(endLineIf + 1, els);
-            falseContent = () => html.substring(endLineEls + 1, endIf);
-        }else{
-            trueContent = () => html.substring(endLineIf + 1, endIf);
-            falseContent = () => '';
-        }
-        let result = scope.execute(statement);
-        let fullContent = html.substring(index, endLineEnd);
-        if(result){
-            html = html.replace(fullContent, trueContent());
-        }
-        else{
-            html = html.replace(fullContent, falseContent());
-        }
-        endIf = index;
-    }
-    return html;
-}
-/**
- * @param {ScopedExecution} scope 
- * @param {string} html 
- */
-function parseFors(scope, html){
-    let endFor = html.lastIndexOf('@endfor');
-    if(endFor == -1) return html;
-    let end = endFor + 7;
-    let start = html.indexOf('@for');
-    let endStart = html.indexOf('\n', start);
-    let statement = html.substring(start + 4, endStart);
-    let match = statement.match(forRegex);
-    if(!match)
-        throw 'Invalid for statement';
-    let [fullMatch, varName, loopType, collection] = match;
-    let innerLoop = html.substring(endStart + 1, endFor - 1);
-    scope.__for = eval(`(function(callback){
-        let __i = 0;
-        for(let item ${loopType} ${collection})
-            callback(item, __i++);
-    })`);
-    let replacements = [];
-    scope.__for((item, i) => {
-        scope.addToScope(varName, item);
-        replacements.push(parseHTML(scope, innerLoop));
-        scope.removeFromScope(varName, item);
-    });
-    let fullContent = html.substring(start, end);
-    html = html.replace(fullContent, replacements.join('\n'));
-    delete scope.__for;
-    endFor = start;
-    return html;
-}
+const KeywordFinder = require('../keywordfinder');
+const ParseStates = require('./parseState');
+const Stack = require('../stack');
+const finder = new KeywordFinder('@if', '@endif', '@endfor', '@for', '@else', '{{', '}}');
 /**
  * 
  * @param {ScopedExecution} scope 
- * @param {string} html 
+ * @param {StreamReader} reader 
+ * @param {Request} request 
  */
-function parseVariables(scope, html){
-    let m;
-    while(m = variableRegex.exec(html)){
-        let [match, string] = m;
-        let result = scope.execute(string);
-        html = html.replace(match, result && result.toString() || '');
-    }
-    return html;
-}
-/**
- * @param {ScopedExecution} scope 
- * @param {string} html 
- */
-function parseHTML(scope, html){
-    return parseVariables(scope, parseIfs(scope, parseFors(scope, html)));
+function writeHTML(scope, reader, request){
+    let stack = new Stack();
+    stack.push(new ParseStates.ReadWrite(request, scope));
+    /**
+     * @type {ParseStates.ParseState}
+     */
+    let top = stack.peek();
+    finder.reset();
+    finder.onFalsePositive = (str) => {
+        top.onInput(str);
+    };
+    reader.on('done', () => {
+        if(!(top instanceof ParseStates.ReadWrite))
+            throw `Invalid end state of parser. Expected end state to be ReadWrite, but is ${top.constructor.name}`
+        finder.onFalsePositive = undefined;
+    });
+    reader.on('data', chunk => {
+        for(let i = 0; i < chunk.length; i++){
+            let keyWord = finder.onInput(chunk[i]);
+            if(keyWord){
+                let state = undefined;
+                let result = undefined;
+                switch(keyWord){
+                    case '{{':
+                        state = new ParseStates.Variable(request, scope);
+                        stack.push(state);
+                        top.onChildState(state);
+                        break;
+                    case '}}':
+                        state = stack.pop();
+                        if(!(state instanceof ParseStates.Variable))
+                            throw 'Invalid state! Expected a Variable state to end }}';
+                        result = state.onEndState();
+                        stack.peek().onChildStateDone(state);
+                        break;
+                    case '@if':
+                        state = new ParseStates.If(request, scope);
+                        stack.push(state);
+                        top.onChildState(state);
+                        break;
+                    case '@else':
+                        state = stack.peek();
+                        if(!(state instanceof ParseStates.If))
+                            throw 'Invalid state! Expected a if state to add @else';
+                        state.startElseStatement();
+                        break;
+                    case '@endif':
+                        state = stack.pop();
+                        if(!(state instanceof ParseStates.If))
+                            throw 'Invalid state! Expected a if state to end @if';
+                        result = state.onEndState();
+                        stack.peek().onChildStateDone(state);
+                        break;
+                    case '@for':
+                        state = new ParseStates.For(request, scope);
+                        stack.push(state);
+                        top.onChildState(state);
+                        break;
+                    case '@endfor':
+                        state = stack.pop();
+                        if(!(state instanceof ParseStates.For))
+                            throw 'Invalid state! Expected a for state to end @endfor';
+                        result = state.onEndState();
+                        stack.peek().onChildStateDone(state);
+                        break;
+                }
+                top = stack.peek();
+                if(result)
+                    top.onInput(result);
+            }
+            else if(!finder.isFindingKeyword){
+                top.onInput(chunk[i]);
+            }
+        }
+    });
 }
 class Component{
-    constructor(){
+    /**
+     * @param {Request} request 
+     */
+    constructor(request){
         if(this.constructor === Component)
             throw 'Can\'t construct a Component. Derive a type from Component instead!';
         /**
          * @type {string[]}
          */
         this.scripts = [];
+        this.telegramLink = request.cookies.key;
     }
     /**
      * @returns {string}
@@ -112,19 +111,14 @@ class Component{
     }
     /**
      * @param {Request} request
-     * @param {function(string):void} callback 
+     * @param {function():void} onComplete
      */
-    parseHTML(request, callback){
-        this.telegramLink = request.cookies.key;
-        fs.readFile(`${config.websiteDirectory}/templates/${this.getTemplate()}`, {encoding: 'utf8'}, (err, data) => {
-            let scope = new ScopedExecution(this);
-            scope.setScope();
-            data = parseHTML(scope, data);
-            scope.unsetScope();
-            if(err) 
-                throw err;
-            callback(data);
-        });
+    writeHTML(request, onComplete){
+        let scope = new ScopedExecution(this);
+        scope.setScope();
+        let stream = fs.createReadStream(`${config.websiteDirectory}/templates/${this.getTemplate()}`, {encoding: 'utf8'});
+        writeHTML(scope, stream, request);
+        stream.on('close', onComplete);
     }
 }
 module.exports = Component;

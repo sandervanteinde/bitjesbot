@@ -8,15 +8,21 @@ class BitjesBot extends Component{
      * @param {Request} request 
      */
     constructor(request){
-        super();
+        super(request);
         this.scripts.push('js/bitjesbot.js');
         let key = request.cookies.key;
         if(key){
+            console.log('key', key);
             let id = connect.getIdFromGUID(key);
+            if(!id){
+                request.setCookie('key', null);
+                delete this.telegramLink;
+            }
             this.reminders = reminderutil.getRemindersForId(id);
         }else{
             this.reminders = [];
         }
+        console.log(this.reminders);
         this.pending = reminderutil.pendingRequests;
     }
     getTemplate(){

@@ -63,11 +63,13 @@ let botName;
     let match = document.cookie.match(/key=([0-9a-z]+)/);
     if(match)
         key = match[1];
-    console.log(key);
 })();
 
 function requestTelegramLink(){
     sendMessage('requestTelegramKey');
+}
+function removeTelegramLink(){
+    sendMessage('removeTelegramKey');
 }
 function requestTelegramLinkResponse(key){
     let modal;

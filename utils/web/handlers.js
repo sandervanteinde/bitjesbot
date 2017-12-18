@@ -34,7 +34,7 @@ class ComponentParser extends Handler{
                     throw 'An @scripts tag is required for scripts';
                 let endScriptsIndex = scriptsIndex + 8;
                 this.preScripts = data.substring(0, scriptsIndex);
-                this.postScripts = data.substring(endScriptsIndex,this.startIndex);
+                this.postScripts = data.substring(endScriptsIndex,startIndex);
                 this.postBody = data.substr(endIndex);
             });
         }

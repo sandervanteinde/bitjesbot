@@ -14,18 +14,21 @@ class ParseState{
     }
     /**
      * @param {string} string 
-     * @param {Request} request 
+     * @param {number} index
      */
-    onInput(string, request){
+    onInput(string, index){
         throw 'Override the onInput method in the deriving class!';
-    }
-    onEndState(){
-
     }
     /**
      * @param {ParseState} state 
      */
     onChildState(state){
+
+    }
+    /**
+     * @param {number} index 
+     */
+    onStateDone(index){
 
     }
     /**
@@ -44,9 +47,9 @@ class ReadWrite extends ParseState{
     }
     /**
      * @param {string} string 
-     * @param {Request} request 
+     * @param {number} index 
      */
-    onInput(string){
+    onInput(string, index){
         this.request.write(string);
     }
 }
@@ -55,48 +58,70 @@ class For extends ParseState{
     constructor(request, scope){
         super(request, scope);
         this.state = 0;
-        this.statement = '';
-        this.body = [''];
+        this.statement = {start: -1, end: -1};
+        this.body = [{start: -1, end: -1}];
         this.index = 0;
     }
     /**
-     * @param {string} string 
+     * @param {string} string
+     * @param {number} index
      */
-    onInput(string){
+    onInput(string, index){
         switch(this.state){
             case 0:
-                if(string == '\n')
+                if(this.statement.start == -1)
+                    this.statement.start = index;
+                else if(string == '\n'){
+                    this.statement.end = index;
                     this.state = 1;
-                else
-                    this.statement += string;
+                }
                 break;
             case 1:
-                this.body[this.index] += string;
+                let obj = this.body[this.index];
+                if(obj.start == -1)
+                    obj.start = index;
                 break;
         }
     }
-    onEndState(){
+    onChildState(state, index){
+        let obj = this.body[this.index];
+        obj.end = index;
     }
-    onChildStateDone(state){
+    onChildStateDone(state, index){
         this.body.push(state);
-        this.body.push('');
+        this.body.push({start: index});
         this.index = this.body.length - 1;
     }
-    execute(){
+    onStateDone(index){
+        let obj = this.body[this.index];
+        obj.end = index;
+    }
+    execute(){        
         let body = this.body;
-        let match = this.statement.match(forRegex);
+        let match = this.request.chunk.substring(this.statement.start, this.statement.end).match(forRegex);
         if(!match)
             throw 'invalid for statement.';
         let [, varName, loopType, collection] = match;
         let theCollection = this.scope.execute(collection);
+        for(let i = 0; i < body.length; i++){
+            let entry = body[i];
+            if(!(entry instanceof ParseState)){
+                let content = null; //lazy load the content
+                body[i] = () => {
+                    if(!content)
+                        content = this.request.chunk.substring(entry.start, entry.end);
+                    return content;
+                };
+            }
+        }
         let callback = (item) => {
             this.scope.addToScope(varName, item);
             for(let i = 0; i < body.length; i++){
-                let entry = this.body[i];
+                let entry = body[i];
                 if(entry instanceof ParseState)
                     entry.execute();
                 else
-                    this.request.write(entry);
+                    this.request.write(entry());
             }
             this.scope.removeFromScope(varName);
         };
@@ -111,66 +136,92 @@ class For extends ParseState{
 class Variable extends ParseState{
     constructor(request, scope){
         super(request, scope);
-        this.statement = '';
+        this.statement = {start: -1, end: -1, string: undefined};
     }
-    onInput(string){
-        this.statement += string;
+    onInput(string, index){
+        if(this.statement.start == -1)
+            this.statement.start = index;
     }
-    onEndState(){
-
+    onStateDone(index){
+        this.statement.end = index;
     }
     execute(){
-        this.request.write((this.scope.execute(this.statement) || '').toString());
+        let statement = this.statement;
+        if(!statement.string){
+            statement.string = this.request.chunk.substring(statement.start, statement.end);
+        }
+        this.request.write((this.scope.execute(statement.string) || '').toString());
     }
 }
 class If extends ParseState{
     constructor(request, scope){
         super(request, scope);
         this.state = 0;
-        this.statement = '';
-        this.trueValue = [''];
-        this.falseValue = [''];
+        this.statement = {start: -1, end: -1, string: undefined};
+        this.trueValue = [{start: -1, end: -1, string: undefined}];
+        this.falseValue = [{start: -1, end: -1, string: undefined}];
         this.index = 0;
     }
-    onInput(string){
+    onInput(string, index){
+        let statement;
         switch(this.state){
             case 0: //getting statement
-                if(string == '\n')
+                if(this.statement.start == -1)
+                    this.statement.start = index;
+                else if(string == '\n'){
+                    this.statement.end = index;
                     this.state = 1; //if
-                else
-                    this.statement += string;
-                    break;
+                }
+                break;
             case 1: //body if-endif or if-else
-                this.trueValue[this.index] += string;
+                statement = this.trueValue[this.index];
+                if(statement.start == -1)
+                    statement.start = index;
                 break;
             case 2: //body else-endif
-                this.falseValue[this.index] += string;
+                statement = this.falseValue[this.index];
+                if(statement.start == -1)
+                    statement.start = index;
                 break;
         }
     }
-    onEndState(string){
-
-    }
-    onChildStateDone(state){
+    onChildStateDone(state, index){
         switch(this.state){
             case 1:
                 this.trueValue.push(state);
-                this.trueValue.push('');
+                this.trueValue.push({start: index, end: -1, string: undefined});
                 this.index = this.trueValue.length - 1;
                 break;
             case 2:
                 this.falseValue.push(state);
-                this.falseValue.push('');
+                this.falseValue.push({start: index, end: -1, string: undefined});
                 this.index = this.falseValue.length - 1;
                 break;
         }
     }
-    startElseStatement(){
+    onChildState(state, index){
+        switch(this.state){
+            case 1:
+                this.trueValue[this.index].end = index;
+                break;
+            case 2:
+                this.falseValue[this.index].end = index;
+                break;
+        }
+    }
+    startElseStatement(index){
+        this.trueValue[this.index].end = index; 
         this.state = 2;
+        this.index = 0;
+    }
+    onStateDone(index){
+        this.onChildState(null, index); //same functionality
     }
     execute(){
         let arr;
-        if(this.scope.execute(this.statement)){
+        if(!this.statement.string)
+            this.statement.string = this.request.chunk.substring(this.statement.start, this.statement.end);
+        if(this.scope.execute(this.statement.string)){
             arr = this.trueValue;
         }else{
             arr = this.falseValue;
@@ -180,8 +231,11 @@ class If extends ParseState{
             let entry = arr[i];
             if(entry instanceof ParseState)
                 entry.execute();
-            else
-                this.request.write(entry);
+            else{
+                if(!entry.string)
+                    entry.string = this.request.chunk.substring(entry.start, entry.end);
+                this.request.write(entry.string);
+            }
         }
     }
 }

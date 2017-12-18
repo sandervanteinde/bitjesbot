@@ -14,6 +14,13 @@ class TelegramConnect{
         if(this.requestGUIDs[guid])
             delete this.requestGUIDs[guid];
     }
+    removeKey(key){
+        delete this.linkGUIDs[key];
+        db.getCollection('telegramlinks', (coll) => {
+            coll.delete({guid: key});
+            coll.saveChanges();
+        });
+    }
     /**
      * 
      */

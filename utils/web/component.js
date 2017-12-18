@@ -13,8 +13,9 @@ const finder = new KeywordFinder('@if', '@endif', '@endfor', '@for', '@else', '{
  * @param {ScopedExecution} scope 
  * @param {StreamReader} reader 
  * @param {Request} request 
+ * @param {function():void} onComplete
  */
-function writeHTML(scope, reader, request){
+function writeHTML(scope, reader, request, onComplete){
     let stack = new Stack();
     stack.push(new ParseStates.ReadWrite(request, scope));
     /**
@@ -25,69 +26,71 @@ function writeHTML(scope, reader, request){
     finder.onFalsePositive = (str) => {
         top.onInput(str);
     };
-    reader.on('done', () => {
+    reader.on('close', () => {
         if(!(top instanceof ParseStates.ReadWrite))
             throw `Invalid end state of parser. Expected end state to be ReadWrite, but is ${top.constructor.name}`
         finder.onFalsePositive = undefined;
+        if(onComplete)
+            onComplete();
     });
     reader.on('data', chunk => {
+        request.chunk = chunk;
         for(let i = 0; i < chunk.length; i++){
             let keyWord = finder.onInput(chunk[i]);
             if(keyWord){
                 let state = undefined;
-                let result = undefined;
+                let start = i - keyWord.length;
                 switch(keyWord){
                     case '{{':
                         state = new ParseStates.Variable(request, scope);
                         stack.push(state);
-                        top.onChildState(state);
+                        top.onChildState(state, start + 1);
                         break;
                     case '}}':
                         state = stack.pop();
                         if(!(state instanceof ParseStates.Variable))
                             throw 'Invalid state! Expected a Variable state to end }}';
-                        result = state.onEndState();
-                        stack.peek().onChildStateDone(state);
+                        state.onStateDone(start + 1);
+                        stack.peek().onChildStateDone(state, i + 1);
                         break;
                     case '@if':
                         state = new ParseStates.If(request, scope);
                         stack.push(state);
-                        top.onChildState(state);
+                        top.onChildState(state, start + 1);
                         break;
                     case '@else':
                         state = stack.peek();
                         if(!(state instanceof ParseStates.If))
                             throw 'Invalid state! Expected a if state to add @else';
-                        state.startElseStatement();
+                        state.startElseStatement(start + 1);
                         break;
                     case '@endif':
                         state = stack.pop();
                         if(!(state instanceof ParseStates.If))
                             throw 'Invalid state! Expected a if state to end @if';
-                        result = state.onEndState();
-                        stack.peek().onChildStateDone(state);
+                        state.onStateDone(start + 1);
+                        stack.peek().onChildStateDone(state, i + 1);
                         break;
                     case '@for':
                         state = new ParseStates.For(request, scope);
                         stack.push(state);
-                        top.onChildState(state);
+                        top.onChildState(state, start + 1);
                         break;
                     case '@endfor':
                         state = stack.pop();
                         if(!(state instanceof ParseStates.For))
                             throw 'Invalid state! Expected a for state to end @endfor';
-                        result = state.onEndState();
-                        stack.peek().onChildStateDone(state);
+                        state.onStateDone(start + 1);
+                        stack.peek().onChildStateDone(state, i + 1);
                         break;
                 }
                 top = stack.peek();
-                if(result)
-                    top.onInput(result);
             }
             else if(!finder.isFindingKeyword){
-                top.onInput(chunk[i]);
+                top.onInput(chunk[i], i);
             }
         }
+        delete request.chunk;
     });
 }
 class Component{
@@ -117,8 +120,7 @@ class Component{
         let scope = new ScopedExecution(this);
         scope.setScope();
         let stream = fs.createReadStream(`${config.websiteDirectory}/templates/${this.getTemplate()}`, {encoding: 'utf8'});
-        writeHTML(scope, stream, request);
-        stream.on('close', onComplete);
+        writeHTML(scope, stream, request, onComplete);
     }
 }
 module.exports = Component;

@@ -14,6 +14,8 @@ class WebSocketHandler{
         this.callbacks = {};
         this.registerCallback('requestTelegramKey', (conn, obj) => this.sendConnectKey(conn, obj));
         this.registerCallback('cancelTelegramKey', (conn, guid) => connect.cancelGUID(guid));
+        this.registerCallback('removeTelegramKey', (conn, empty, key) => connect.removeKey(key));
+
         bot.registerSlashCommand('start', null, (msg, slashCmd, key) => {
             log.debug(`attempting to link guid ${key}`);
             let connection = connect.getConnectionFromGUID(key);
@@ -59,7 +61,7 @@ class WebSocketHandler{
         let obj = JSON.parse(text);
         let callback = this.callbacks[obj.id];
         if(callback)
-            callback(connection, obj.content);
+            callback(connection, obj.content, obj.key);
     }
     connectionClosed(connection, code, reason){
         if(this.connections[connection])

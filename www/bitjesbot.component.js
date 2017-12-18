@@ -12,7 +12,6 @@ class BitjesBot extends Component{
         this.scripts.push('js/bitjesbot.js');
         let key = request.cookies.key;
         if(key){
-            console.log('key', key);
             let id = connect.getIdFromGUID(key);
             if(!id){
                 request.setCookie('key', null);
@@ -22,7 +21,6 @@ class BitjesBot extends Component{
         }else{
             this.reminders = [];
         }
-        console.log(this.reminders);
         this.pending = reminderutil.pendingRequests;
     }
     getTemplate(){

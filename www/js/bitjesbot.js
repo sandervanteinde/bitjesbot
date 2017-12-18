@@ -1,3 +1,6 @@
-$("button").on('click', ev => {
+$('#connect-telegram').on('click', ev => {
     requestTelegramLink();
+});
+$('#logout').on('click', ev => {
+    removeTelegramLink();
 });

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const log = require('../log');
 const handlers = require('./handlers');
+const config = require('../../config');
 class UrlResolver{
     constructor(){
         this.strategies = [
@@ -12,6 +13,9 @@ class UrlResolver{
             ['{url}/index.component.js', handlers.ComponentParser],
             ['{url}/index.html', handlers.FileHandler],
         ];
+        this.ignoresUrls = [
+            `${config.websiteDirectory}/templates`
+        ];
     }
     /**
      * @param {string} url
@@ -19,9 +23,12 @@ class UrlResolver{
      */
     resolve(url, callback)
     {
+        for(let i = 0; i < this.ignoresUrls.length; i++)
+            if(url.startsWith(this.ignoresUrls[i]))
+                return callback(false);
         let attemptIndex = index=> {
             if(index >= this.strategies.length)
-                return callback(false, null, null);
+                return callback(false);
             let [strategy, handler] = this.strategies[index];
             let parsedUrl = strategy.replace('{url}', url);
             fs.exists(parsedUrl, exists => {

@@ -143,8 +143,22 @@ function helpCallback(msg){
 function aboutCallback(msg){
     sendMessage({chatId: msg.chat.id, message: 'This bot is made by Sande van \'t Einde.\nYou can view the source at https://www.github.com/sandervanteinde/bitjesbot'});
 }
-function answerCallbackQuery(id, {callback = null} = {}){
-    callApiMethod('answerCallbackQuery', {callback_query_id: id}, callback);
+/**
+ * 
+ * @param {number} id 
+ * @param {function} callback
+ * @param {string} notification 
+ */
+function answerCallbackQuery(id, {callback = null, notification = null} = {}){
+    let options = {
+        callback_query_id: id
+    };
+    if(notification)
+    {
+        options.show_alert = true;
+        options.text = notification;
+    }
+    callApiMethod('answerCallbackQuery', options, callback);
 }
 /**
  * 

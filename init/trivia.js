@@ -3,6 +3,7 @@ const https = require('https');
 const bodyparser = require('../utils/bodyparser');
 const keyboard = require('../utils/keyboard');
 const Encoder = require('node-html-encoder').Encoder
+const moment = require('moment');
 const encoder = new Encoder('entity');
 
 class GameSession{
@@ -19,9 +20,13 @@ class GameSession{
         this.chatId = chatId;
         this.running = true;
         /**
-         * @type {Object<int, object>}
+         * @type {Object<number, object>}
          */
         this.score = {};
+        /**
+         * @type {Object<number, moment>}
+         */
+        this.timeouts = {};
         this.questionId = 0;
     }
     /**
@@ -79,16 +84,28 @@ class GameSession{
         return arr;
     }
     checkRightAnswer(msg, id){
-        if(!this.question) return;
-        if(this.answers[id] == this.question.correct_answer){
-            let from = msg.from;
-            let entry = this.score[from];
+        let rightAnswer = this.answers[id] == this.question.correct_answer;
+        msg.answered = true;
+        let from = msg.from;
+        let timeout = this.timeouts[from.id];
+        let diff;
+        if(this.timeouts[from.id] &&  (diff = moment().diff(timeout, 'seconds')) < 5){
+            bot.answerCallbackQuery(msg.id, {notification: `You are timed out for ${5 - diff} more seconds`});
+        }
+        else if(this.question.answered){ //answered, but to late
+            bot.answerCallbackQuery(msg.id, {notification: `To late, but your answer was: ${rightAnswer && 'correct' || 'incorrect'}`})
+        }
+        else if(rightAnswer){
+            let entry = this.score[from.id];
             if(!entry)
             {
-                entry = {name: `${from.first_name} ${from.last_name}`, score: 0};
-                this.score[from] = entry;
+                entry = {name: from.first_name, score: 0};
+                if(from.last_name)
+                    entry.name += ` ${from.last_name}`;
+                this.score[from.id] = entry;
             }
             entry.score++;
+            bot.answerCallbackQuery(msg.id, {notification: 'Correct!'});
             bot.editMessage(this.chatId, msg.message.message_id, this.question.question);
             bot.sendMessage({
                 chatId: this.chatId,
@@ -105,6 +122,9 @@ class GameSession{
             }
             setTimeout(() => this.sendQuestion(), 5000);
             this.question = undefined;
+        }else{
+            bot.answerCallbackQuery(msg.id, {notification: 'Incorrect, you can\'t vote for 5 seconds'});
+            this.timeouts[from.id] = moment();
         }
     }
     

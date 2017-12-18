@@ -1,19 +1,17 @@
 const EventEmitter = require('events');
 const Reminder = require('../models/reminder');
+const config = require('../config');
+const log = require('./log');
 
 class EventHandler extends EventEmitter{
-    /**
-     * 
-     * @param {Reminder} reminder 
-     */
-    emitNewReminder(reminder){
-        this.emit('on-new-reminder', reminder);
-    }
-    /**
-     * @param {function(Reminder):void} callback 
-     */
-    onNewReminder(callback){
-        this.addListener('on-new-reminder', callback);
+    constructor(){
+        super();
+        if(config.loggingLevel <= 1){
+            this.emit = (evName, ...params) => {
+                log.debug(`Emitting event [${evName}]`);
+                super.emit(evName, ...params);
+            };
+        }
     }
 }
 

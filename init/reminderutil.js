@@ -9,6 +9,7 @@ const Reminder = require('../models/reminder');
 const log = require('../utils/log');
 const ws = require('../utils/web/websocket');
 const config = require('../config');
+const EventHandler = require('../utils/eventhandler');
 
 class ReminderUtil{
     /**
@@ -128,6 +129,7 @@ class ReminderUtil{
             db.getCollection('reminders', collection => {
                 collection.add(register.toDbObject());
                 collection.saveChanges();
+                EventHandler.emit('new-reminder', register);
             });
             callback = `You will be reminded at ${this.parseDate(register.moment)}`;
         }

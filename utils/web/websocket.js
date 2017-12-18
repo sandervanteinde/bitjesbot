@@ -4,10 +4,14 @@ const connect = require('../telegramconnect');
 const config = require('../../config');
 const bot = require('../../init/bot');
 const fs = require('fs');
+const EventHandler = require('../eventhandler');
 class WebSocketHandler{
     constructor(){
         this.running = false;
-        this.connections = [];
+        /**
+         * @type {Connection[]}
+         */
+        this.connections = []
         /**
          * @type {Object.<string,function>}
          */
@@ -22,6 +26,7 @@ class WebSocketHandler{
             if(connection)
                 this.send(connection, 'telegramlink', connect.createLinkForUserId(msg.from.id));
         });
+        EventHandler.on('new-reminder', reminder => this.sendToAllWhere({id: reminder.chat}, 'new-reminder', reminder));
     }
     sendConnectKey(connection, obj){
         let key = connect.getGUID(connection);
@@ -41,7 +46,7 @@ class WebSocketHandler{
             options.key = key;
         }
         let server = ws.createServer(options,conn => {
-            this.connections[conn] = true;
+            this.connections.push(conn);
             conn.on('text', text => this.textReceived(conn, text));
             conn.on('close', (code, reason) => {
                 log.debug('websocket closing');
@@ -53,22 +58,49 @@ class WebSocketHandler{
         });
         server.on('listening', () => log.debug(`websocket listening on port ${port}`));
         server.listen(port);
-        
 
     }
     textReceived(connection, text){
         log.debug('websocket msg received:', text);
         let obj = JSON.parse(text);
+        if(obj.key && !connection.authkey){
+            connection.authkey = obj.key;
+            connection.id = connect.getIdFromGUID(obj.key);
+        }
         let callback = this.callbacks[obj.id];
         if(callback)
             callback(connection, obj.content, obj.key);
     }
     connectionClosed(connection, code, reason){
-        if(this.connections[connection])
-            delete this.connections[connection];
+        let index = this.connections.indexOf(connection);
+        if(index >= 0)
+            this.connections.splice(index, 1);
     }
     registerCallback(key, callback){
         this.callbacks[key] = callback;
+    }
+    /**
+     * @param {object} obj 
+     * @param {string} id 
+     * @param {string} content 
+     */
+    sendToAllWhere(obj, id, content){
+        console.log(obj);
+        console.log(this.connections.length);
+        for(let connection of this.connections){
+            console.log(connection);
+            let send = true;
+            for(let key in obj){
+                console.log(key, connection[key], obj[key]);
+                if(connection[key] != obj[key])
+                {
+                    send = false;
+                    break;
+                }
+            }
+            if(send)
+                this.send(connection, id, content);
+        }
     }
 }
 module.exports = new WebSocketHandler();

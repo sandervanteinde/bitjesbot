@@ -37,6 +37,7 @@ let botName;
         callbacks.forEach(func => func());
         onWebSocket = (func) => func();
         delete callbacks;
+        sendMessage('hello');
     }
     sendMessage = (id, content) => {
         ws.send(JSON.stringify({id, content, key}));

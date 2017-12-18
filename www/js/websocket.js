@@ -40,7 +40,10 @@ let botName;
         sendMessage('hello');
     }
     sendMessage = (id, content) => {
-        ws.send(JSON.stringify({id, content, key}));
+        if(!open)
+            callbacks.push(() => sendMessage(id, content));
+        else
+            ws.send(JSON.stringify({id, content, key}));
     };
     addHandler = (id, handler) => {
         handlers[id] = handler;

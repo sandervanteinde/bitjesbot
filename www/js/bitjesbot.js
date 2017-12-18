@@ -12,3 +12,6 @@ addHandler('new-reminder', reminder =>{
         )
     );
 });
+onWebSocket(() => {
+    $('button').attr('disabled', null);
+});

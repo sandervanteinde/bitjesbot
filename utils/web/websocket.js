@@ -46,6 +46,7 @@ class WebSocketHandler{
             options.key = key;
         }
         let server = ws.createServer(options,conn => {
+            log.debug('websocket opening');
             this.connections.push(conn);
             conn.on('text', text => this.textReceived(conn, text));
             conn.on('close', (code, reason) => {

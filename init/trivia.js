@@ -69,7 +69,6 @@ class GameSession{
             result.push(currentArr);
 
         }
-        console.log(result);
         return result;
     }
     shuffleArray(arr){

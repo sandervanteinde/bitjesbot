@@ -104,6 +104,7 @@ class GameSession{
                 bot.sendMessage({chatId: this.chatId, message: `Current Score:\n\n${standings.join('\n')}`});
             }
             setTimeout(() => this.sendQuestion(), 5000);
+            this.question = undefined;
         }
     }
     

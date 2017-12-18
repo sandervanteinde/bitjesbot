@@ -19,15 +19,17 @@ let url = `bot${config.API_KEY}`;
  */
 function registerSlashCommand(command, help, callback){
     if(slashCommands[command])
-        error('A command with the name ' + command + 'already exists!');
-    slashCommands[command] = {help, callback};
+    error('A command with the name ' + command + 'already exists!');
+    let obj = {help, callback};
+    slashCommands[command] = obj;
+    slashCommands[`${command}@${config.botName}`] = obj;
 }
 /**
  * @param {number} chatId 
  * @param {string} message 
  * @param {number} replyId
  */
-function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null}){
+function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null}){
     let options = {
         chat_id: chatId,
         text: message
@@ -36,6 +38,8 @@ function sendMessage({chatId, message, callback = null, keyboard = [], replyId =
         options.reply_to_message_id = replyId;
     if(keyboard.length > 0)
         options.reply_markup = {inline_keyboard: keyboard};
+    if(parse_mode)
+        options.parse_mode = parse_mode;
     callApiMethod('sendMessage', options, callback);
 }
 
@@ -129,6 +133,7 @@ function setWebhook(domain){
 function helpCallback(msg){
     commands = [];
     for(let slashCommand in slashCommands){
+        if(slashCommand.indexOf('@') >= 0) continue;
         if(slashCommands[slashCommand].help)
             commands.push(`/${slashCommand} - ${slashCommands[slashCommand].help}`);
     }

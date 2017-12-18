@@ -31,8 +31,10 @@ class KeyboardHandler {
     handleCallback(msg){
         let name = msg.data;
         let callback = this.callbacks[name];
-        if(!callback)
+        if(!callback){
             console.error(`Received an unknown keyboard button callback: ${name}`);
+            return;
+        }
         callback(msg);
     }
 }

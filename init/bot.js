@@ -129,7 +129,8 @@ function setWebhook(domain){
 function helpCallback(msg){
     commands = [];
     for(let slashCommand in slashCommands){
-        commands.push(`/${slashCommand} - ${slashCommands[slashCommand].help}`);
+        if(slashCommands[slashCommand].help)
+            commands.push(`/${slashCommand} - ${slashCommands[slashCommand].help}`);
     }
     let sendMsg = `Available commands:\n\n${commands.join('\n')}`;
     sendMessage({chatId: msg.chat.id, message: sendMsg});

@@ -37,6 +37,23 @@
                 </tr>
             @endfor
         </tbody>
+        <tfoot>
+            <tr>
+                <td><input required placeholder="Pick a date" type="text" class="datepicker"></td>
+                <td><input required placeholder="Pick a time" type="text" class="timepicker"></td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="input-field">
+                        <input required id="text" type="text" class="validate">
+                        <label for="text">Reminder text</label>
+                    </div>
+                </td>
+                <td>
+                    <button id="add-reminder-btn" class="btn">Add!</button>
+                </td>
+            </tr>
+        </tfoot>
     </table>
     <button disabled class="red btn" id="logout">
         Logout

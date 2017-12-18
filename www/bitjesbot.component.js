@@ -9,6 +9,7 @@ class BitjesBot extends Component{
      */
     constructor(request){
         super(request);
+        this.scripts.push('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.0/moment.min.js');
         this.scripts.push('js/bitjesbot.js');
         let key = request.cookies.key;
         if(key){

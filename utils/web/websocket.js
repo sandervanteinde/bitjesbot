@@ -77,6 +77,10 @@ class WebSocketHandler{
         if(index >= 0)
             this.connections.splice(index, 1);
     }
+    /**
+     * @param {string} key
+     * @param {function(Connection, any, string):void} callback
+     */
     registerCallback(key, callback){
         this.callbacks[key] = callback;
     }

@@ -98,6 +98,15 @@ class ReminderUtil{
             };
         });
         moment.tz.setDefault('Europe/Amsterdam');
+        ws.registerCallback('add-reminder', (conn, content, key) => {
+            if(!conn.id) return;
+            let mom = moment(content.date);
+            let split = content.time.split(':');
+            mom.add(split[0], 'hour');
+            mom.add(split[1], 'minute');
+            let reminder = new Reminder(content.text, mom, conn.id);
+            this.addReminder(reminder);
+        });
     }
     getId(msg){
         return `${msg.chat.id}_${msg.message_id}`;
@@ -113,7 +122,18 @@ class ReminderUtil{
     parseDate(moment){
         return moment.format('ddd D MMM YYYY HH:mm');
     }
-
+    /**
+     * 
+     * @param {Reminder} reminder 
+     */
+    addReminder(reminder){
+        this.reminders.push(reminder);
+        db.getCollection('reminders', collection => {
+            collection.add(reminder.toDbObject());
+            collection.saveChanges();
+            EventHandler.emit('new-reminder', reminder);
+        });
+    }
     onOk(msg){
         let id = this.getId(msg.message);
         let register = this.registry[id];
@@ -125,12 +145,7 @@ class ReminderUtil{
         if(!register)
             callback =  'Something went wrong. Try again!';
         else{
-            this.reminders.push(register);
-            db.getCollection('reminders', collection => {
-                collection.add(register.toDbObject());
-                collection.saveChanges();
-                EventHandler.emit('new-reminder', register);
-            });
+            this.addReminder(register);
             callback = `You will be reminded at ${this.parseDate(register.moment)}`;
         }
         bot.answerCallbackQuery(msg.id, {callback: () => {

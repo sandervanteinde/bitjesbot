@@ -241,9 +241,9 @@ class If extends ParseState{
 }
 
 module.exports = {
+    ParseState,
     ReadWrite,
     For,
+    Variable,
     If,
-    Variable ,
-    ParseState 
 }

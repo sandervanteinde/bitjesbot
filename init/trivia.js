@@ -4,6 +4,7 @@ const bodyparser = require('../utils/bodyparser');
 const keyboard = require('../utils/keyboard');
 const Encoder = require('node-html-encoder').Encoder
 const moment = require('moment');
+const arrayUtil = require('../utils/arrayutil');
 const encoder = new Encoder('entity');
 
 class GameSession{
@@ -53,7 +54,7 @@ class GameSession{
             incorrect_answers[i] = encoder.htmlDecode(incorrect_answers[i]);
         if(!this.running) return;
         this.question = {id: ++this.questionId, category, type, difficulty, question, correct_answer, incorrect_answers};
-        this.answers = this.shuffleArray([correct_answer, ...incorrect_answers]);
+        this.answers = arrayUtil.shuffle([correct_answer, ...incorrect_answers]);
         bot.sendMessage({
             chatId: this.chatId,
             message: this.formatQuestion(),
@@ -85,17 +86,6 @@ class GameSession{
 
         }
         return result;
-    }
-    shuffleArray(arr){
-        for(let i = 0; i < 100; i++){
-            let index1 = Math.floor(Math.random() * arr.length);
-            let index2 = Math.floor(Math.random() * arr.length);
-            if(index1 == index2) continue;
-            let temp = arr[index1];
-            arr[index1] = arr[index2];
-            arr[index2] = temp;
-        }
-        return arr;
     }
     checkRightAnswer(msg, id){
         let rightAnswer = this.answers[id] == this.question.correct_answer;

@@ -28,8 +28,13 @@ function registerSlashCommand(command, help, callback){
  * @param {number} chatId 
  * @param {string} message 
  * @param {number} replyId
+ * @param {function(any)} callback
+ * @param {any[]} keyboard
+ * @param {number} replyId 
+ * @param {string} parse_mode
+ * @param {function(any)} error
  */
-function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null}){
+function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null, error}){
     let options = {
         chat_id: chatId,
         text: message
@@ -40,15 +45,15 @@ function sendMessage({chatId, message, callback = null, keyboard = [], replyId =
         options.reply_markup = {inline_keyboard: keyboard};
     if(parse_mode)
         options.parse_mode = parse_mode;
-    callApiMethod('sendMessage', options, callback);
+    callApiMethod('sendMessage', options, callback, error);
 }
 
 /**
  * @param {string} method 
  * @param {object} body 
- * @param {function} callBack 
+ * @param {function} callback 
  */
-function callApiMethod(method, body = null, callBack){
+function callApiMethod(method, body = null, callback, error){
     let postOptions = {
         host: 'api.telegram.org',
         path: `/${url}/${method}`,
@@ -59,21 +64,28 @@ function callApiMethod(method, body = null, callBack){
         timeout: 5000
     };
     let request = https.request(postOptions, (res) => bodyparser.parseJson(res, body => {
-        if(!body.ok)
-            console.error('Invalid message sent!', body);
-        if(callBack)
-            callBack(body);
+        if(!body.ok){
+            if(error)
+                error(body);
+            else
+                console.error('Unhandled wrongly parsed message!', body);
+        }
+        else if(callback)
+            callback(body);
     }));
-    request.on('error', err => {
-        polling = false;
-        if(err.code == 'ETIMEDOUT' && method == 'getUpdates')
-            return;//not important, this happens when polling
-        console.error({
-            method,
-            message: 'attempted to call an API method, but the request failed!',
-            inner: err,
+    if(error)
+        request.on('error', error);
+    else
+        request.on('error', err => {
+            polling = false;
+            if(err.code == 'ETIMEDOUT' && method == 'getUpdates')
+                return;//not important, this happens when polling
+            console.error({
+                method,
+                message: 'Unhandled API error!',
+                inner: err,
+            });
         });
-    });
     if(body)
         request.write(JSON.stringify(body));
     request.end();

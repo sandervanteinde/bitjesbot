@@ -5,6 +5,7 @@ const keyboard = require('../../utils/keyboard');
 const JoinGameState = require('./joingamestate');
 const Role = require('./role');
 const Faction = require('./faction');
+const arrayUtil = require('../../utils/arrayutil');
 class SecretHitlerGame{
     constructor(chatId, host){
         this.chatId = chatId;
@@ -23,6 +24,31 @@ class SecretHitlerGame{
          * @type {GameState}
          */
         this.setState(new JoinGameState());
+        /**
+         * The turn order. Each entry is the player id as seen in this.players and this.roles
+         * @type {number[]}
+         */
+        this.turnOrder = [];
+        /**
+         * The seat ID of the president
+         * @type {number}
+         */
+        this.president = -1;
+        /**
+         * The seat ID of the Chancelor
+         * @type {number}
+         */
+        this.chancellor = -1;
+        /**
+         * The seat ID of the previous elected President
+         * @type {number}
+         */
+        this.previousPresident = -1;
+        /**
+         * The seat ID of the previous elected Chancellor
+         * @type {number}
+         */
+        this.previousChancellor = -1;
     }
     /**
      * @param {string} name 
@@ -33,7 +59,7 @@ class SecretHitlerGame{
         return this.state.handleInput(this, msg, name, ...params);
     }
     enableTestMode(count){
-        if(this.state instanceof JoinGameState)
+        if(this.state.enableTestMode)
             this.state.enableTestMode(count);
     }
     /**
@@ -52,6 +78,14 @@ class SecretHitlerGame{
      */
     setPlayerRole(playerId, role){
         this.roles[playerId] = role;
+    }
+    randomizePlayerTurns(){
+        let turnOrder = [];
+        for(let i in this.players){
+            turnOrder.push(i);
+        }
+        arrayUtil.shuffle(turnOrder, 20);
+        this.turnOrder = turnOrder;
     }
     *fascists(){
         for(let i in this.roles)

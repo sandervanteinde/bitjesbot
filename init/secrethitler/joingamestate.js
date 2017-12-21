@@ -1,16 +1,15 @@
 const GameState = require('./gamestate');
 const SecretHitlerGame = require('./secrethitlergame');
-const Module = require('../secrethitler');
-const bot = require('../bot');
 const StartGameState = require('./startgamestate');
-class JoinGameState extends GameState{
-    
+const GameRegistry = require('./gameregistry');
+
+/**
+ * People are joining and leaving the game in this state.
+ * The host has access to a Start and Cancel button which does both respectively
+ */
+class JoinGameState extends GameState {
     parseStartMessage(){
-        let message = `Welcome to the Secret Hitler game!\n
-To join the game, press the buttons below to join or leave the game.\n
-The host is: ${this.parseUserName(this.game.host)}.\n
-(S)he can interact with the Start and Cancel button.\n\n
-Current Players:`;
+        let message = `Welcome to the Secret Hitler game!\nTo join the game, press the buttons below to join or leave the game.\nThe host is: ${this.parseUserName(this.game.host)}.\n(S)he can interact with the Start and Cancel button.\n\nCurrent Players:`;
         let players = this.game.players;
         for(let i in players)
             message += `\n${this.parseUserName(players[i])}`;
@@ -23,8 +22,7 @@ Current Players:`;
     onStartState(game){
         super.onStartState(game);
         this.joinPlayer(game.host);
-        bot.sendMessage({
-            chatId: game.chatId,
+        this.sendMessageToGroup({
             message: this.parseStartMessage(),
             keyboard:  this.getStartMessageKeyboard(),
             callback: msg => this.start_message = msg.result.message_id
@@ -35,7 +33,7 @@ Current Players:`;
         let keyboard = this.getStartMessageKeyboard();
         if(this.game.testMode)
             [, ...keyboard] = keyboard;
-        bot.editMessage(this.game.chatId, this.start_message, this.parseStartMessage(), {keyboard});
+        this.editGroupMessage(this.start_message, this.parseStartMessage(), {keyboard});
     }
     
     getStartMessageKeyboard(){
@@ -71,8 +69,8 @@ Current Players:`;
     onCancelButton(player){
         if(player.id != this.game.host.id)
             return 'Only the host can cancel the game';
-        delete Module.games[this.chatId];
-        bot.editMessage(game.chatId, this.start_message, 'The Secret Hitler game was cancelled by the host.');
+        GameRegistry.removeGame(this.game.chatId);
+        this.editGroupMessage(this.start_message, 'The Secret Hitler game was cancelled by the host.');
         return 'Game cancelled';
     }
     onStartButton(player){
@@ -86,7 +84,7 @@ Current Players:`;
         for(let i in this.players){
             msg += `\n${this.parseUserName(this.players[i])}`;
         }
-        bot.editMessage(this.game.chatId, this.start_message, msg);
+        this.editGroupMessage(this.start_message, msg);
         this.game.setState(new StartGameState());
         return 'The game has started';
     }

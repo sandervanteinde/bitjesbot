@@ -1,5 +1,6 @@
 const SecretHitlerGame = require('./secrethitlergame');
 const keyboard = require('../../utils/keyboard');
+const bot = require('../bot');
 class GameState{
     constructor(){
         if(this.constructor == GameState)
@@ -36,6 +37,17 @@ class GameState{
      */
     getButton(text, callbackName, ...params){
         return keyboard.button(text, `secr-hit`, this.game.chatId, callbackName, ...params)
+    }
+    sendMessageToGroup(options = {message: '', keyboard: null, callback: null}){
+        options.chatId = this.game.chatId;
+        bot.sendMessage(options);
+    }
+    editGroupMessage(msgId, message, obj = {keyboard: null, parse_mode: null}){
+        bot.editMessage(this.game.chatId, msgId, message, obj);
+    }
+    sendMessageToUser(user, options = {message: ''}){
+        options.chatId = user.id;
+        bot.sendMessage(options);
     }
     
     parseUserName(user){

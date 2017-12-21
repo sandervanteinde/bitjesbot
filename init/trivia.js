@@ -28,6 +28,14 @@ class GameSession{
          */
         this.timeouts = {};
         this.questionId = 0;
+        this.currentMessageId = -1;
+    }
+    formatQuestion(){
+        let message = `__Question # ${this.question.id}__:\n${this.question.question}\n`;
+        for(let i = 0; i < this.answers.length; i++){
+            message += `\n${i + 1}) ${this.answers[i]}`;
+        }
+        return message;
     }
     /**
      * 
@@ -44,21 +52,28 @@ class GameSession{
         for(let i = 0; i < incorrect_answers.length; i++)
             incorrect_answers[i] = encoder.htmlDecode(incorrect_answers[i]);
         if(!this.running) return;
-        this.question = {category, type, difficulty, question, correct_answer, incorrect_answers};
+        this.question = {id: ++this.questionId, category, type, difficulty, question, correct_answer, incorrect_answers};
         this.answers = this.shuffleArray([correct_answer, ...incorrect_answers]);
         bot.sendMessage({
             chatId: this.chatId,
-            message: `__Question # ${++this.questionId}__:\n${question}`,
+            message: this.formatQuestion(),
             keyboard: this.generateKeyboardFromQuestions(this.answers),
-            parse_mode: 'markdown'
+            parse_mode: 'markdown',
+            callback: msg => {
+                this.currentMessageId = msg.result.message_id;
+            }
         });
+    }
+    stopQuestion(){
+        if(this.question)
+            bot.editMessage(this.chatId, this.currentMessageId, this.formatQuestion(), {parse_mode: 'markdown'});
     }
     generateKeyboardFromQuestions(answers){
         let result = [];
         let currentArr = [];
         let i = 0;
         for(; i < answers.length; i++){
-            currentArr.push(keyboard.button(answers[i], `answer_trivia_${i}`));
+            currentArr.push(keyboard.button(answers[i], 'answer_trivia', i));
             if(i % 2 == 1){
                 result.push(currentArr);
                 currentArr = [];
@@ -105,10 +120,10 @@ class GameSession{
             }
             entry.score++;
             bot.answerCallbackQuery(msg.id, {notification: 'Correct!'});
-            bot.editMessage(this.chatId, msg.message.message_id, this.question.question);
+            this.stopQuestion();
             bot.sendMessage({
                 chatId: this.chatId,
-                message: `The correct answer was: __${this.question.correct_answer}__\n__${msg.from.first_name} ${msg.from.last_name}__ guessed this!`,
+                message: `The correct answer was: __${this.question.correct_answer}__\n__${msg.from.first_name} ${msg.from.last_name}__ was the first to answer correctly!`,
                 parse_mode: 'markdown'
             });
             if(this.questionId % 5 == 0){
@@ -142,7 +157,7 @@ class Trivia{
          */
         this.sessions = {};
         for(let i = 0; i < 10; i++)
-            keyboard.registerCallback(`answer_trivia_${i}`, (msg)=> this.handleAnswer(msg, i));
+            keyboard.registerCallback('answer_trivia', (msg, command, [id])=> this.handleAnswer(msg, id));
     }
     handleAnswer(msg, answerId){
         let session = this.sessions[msg.message.chat.id];
@@ -167,17 +182,17 @@ class Trivia{
         this.sessions[chatId] = session;
         https.get('https://opentdb.com/api_token.php?command=request', res =>  bodyparser.parseJson(res, content => {
             session.token = content.token;
-            session.sendQuestion(chatId);
         }));
 
-        //setTimeout(() => bot.sendMessage({chatId: chatId, message: 'Starting in 15 seconds'}), 15000);
-        //setTimeout(() => this.sendQuestion(chatId), 30000);
+        setTimeout(() => bot.sendMessage({chatId: chatId, message: 'Starting in 15 seconds'}), 15000);
+        setTimeout(() => session.sendQuestion(chatId), 30000);
     }  
     onTriviaStopRequested(msg){
         let session = this.sessions[msg.chat.id];
         if(session){
             bot.sendMessage({chatId: msg.chat.id, message: 'Trivia session stopped!'});
             session.running = false;
+            session.stopQuestion();
             delete this.sessions[msg.chat.id];
         }else{
             bot.sendMessage({chatId: msg.chat.id, message: 'There wasn\'t any session going'});

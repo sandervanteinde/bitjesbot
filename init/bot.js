@@ -66,11 +66,16 @@ function callApiMethod(method, body = null, callBack){
     }));
     request.on('error', err => {
         polling = false;
-        console.error(err);
+        if(err.code == 'ETIMEDOUT' && method == 'getUpdates')
+            return;//not important, this happens when polling
+        console.error({
+            method,
+            message: 'attempted to call an API method, but the request failed!',
+            inner: err,
+        });
     });
-    if(body){
+    if(body)
         request.write(JSON.stringify(body));
-    }
     request.end();
 }
 function sendUnknownCommand(msg){
@@ -166,10 +171,12 @@ function answerCallbackQuery(id, {callback = null, notification = null} = {}){
  * @param {number} message_id 
  * @param {string} text 
  */
-function editMessage(chat_id, message_id, text, {keyboard = null} = {}){
+function editMessage(chat_id, message_id, text, {keyboard = null, parse_mode = null} = {}){
     let options = {chat_id, message_id, text};
     if(keyboard !== null)
         options.reply_markup = {inline_keyboard: keyboard};
+    if(parse_mode !== null)
+        options.parse_mode = parse_mode;
     callApiMethod('editMessageText', options);
 }
 if(config.domain){

@@ -4,6 +4,7 @@ const roles = require('./roles');
 const arrayUtil = require('../../utils/arrayutil');
 const config = require('../../config');
 const InitGameState = require('./initgamestate');
+const Player = require('./player');
 /**
  * The state when the host has decided to start the game.
  * In this state the roles are assigned and handed to the player.
@@ -44,12 +45,12 @@ class StartGameState extends GameState{
     }
     /**
      * 
-     * @param {any[]} fascists 
+     * @param {Player[]} fascists 
      */
     announceFascist(fascists){
         let hitlerIndex = fascists.findIndex((c => c.role.isHitler));
         let [hitler] = fascists.splice(hitlerIndex, 1);
-        let msg = `You are a fascist\nHitler is: ${this.parseUserName(hitler.player)}`;
+        let msg = `You are a fascist\nHitler is: ${this.parseUserName(hitler)}`;
         if(fascists.length == 2)
             msg += '\nThe other fascist is:';
         else if(fascists.length > 2)
@@ -59,46 +60,51 @@ class StartGameState extends GameState{
             let copy = msg;
             for(let j = 0; j < fascists.length; j++){
                 if(i == j) continue;
-                copy += `\n- ${this.parseUserName(fascists[j].player)}`;
+                copy += `\n- ${this.parseUserName(fascists[j])}`;
             }
-            this.announceToPlayer(fascists[i].player, copy);
+            this.announceToPlayer(fascists[i], copy);
         }
         let hitlerMsg;
         if(this.game.playerCount < 7){
-            hitlerMsg = 'You are hitler!\nThe other fascists are:';
-            for(let i = 0; i < fascists.length; i++)
-                hitlerMsg += `\n- ${this.parseUserName(fascists[i].player)}`;
+            hitlerMsg = `You are hitler!\nThe other fascist is:\n- ${this.parseUserName(fascists[0])}`;
         }
         else
             hitlerMsg = 'You are hitler! You do not know who the fascists are.';
-        this.announceToPlayer(hitler.player, hitlerMsg);
+        this.announceToPlayer(hitler, hitlerMsg);
     }
+    /**
+     * @param {Player[]} liberals 
+     */
     announceLiberals(liberals){
         for(let i = 0; i < liberals.length; i++){
-            this.announceToPlayer(liberals[i].player, 'You are liberal!\nYou do not know who hitler, the fascists, or the other liberals are');
+            this.announceToPlayer(liberals[i], 'You are liberal!\nYou do not know who hitler, the fascists, or the other liberals are');
         }
     }
+    /**
+     * 
+     * @param {Player} player 
+     * @param {string} message 
+     */
     announceToPlayer(player, message){
         let playerId = player.id;
         this.rolesReceived[playerId] = false;
-        if(typeof playerId == 'string' && playerId.startsWith('TEST')){
-            console.log(`announcing to ${playerId}: ${message}`);
-            this.rolesReceived[playerId] = true;
-        }else{
-            this.sendMessageToUser(player,{
-                message,
-                callback: msg => this.rolesReceived[playerId] = true,
-                error: err => {
-                    if(err.error_code == 403){
-                        this.sendMessageToGroup({
-                            message: `${this.parseUserName(player)}: I was unable to send you a direct message.\nGo to @${config.botName} and start the bot to allow me to PM you!\nYou have 60 seconds to respond or the game will be terminated.`
-                        });
-                        this.attemptResendRole(player, message);
-                    }
+        this.sendMessageToUser(player,{
+            message,
+            callback: msg => this.rolesReceived[playerId] = true,
+            error: err => {
+                if(err.error_code == 403){
+                    this.sendMessageToGroup({
+                        message: `${this.parseUserName(player)}: I was unable to send you a direct message.\nGo to @${config.botName} and start the bot to allow me to PM you!\nYou have 60 seconds to respond or the game will be terminated.`
+                    });
+                    this.attemptResendRole(player, message);
                 }
-            });
-        }
+            }
+        });
     }
+    /**
+     * @param {Player} player 
+     * @param {string} message 
+     */
     attemptResendRole(player, message){
         let interval;
         this.intervals.push(interval = setInterval(() => {

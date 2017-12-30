@@ -2,6 +2,7 @@ const GameState = require('./gamestate');
 const SecretHitlerGame = require('./secrethitlergame');
 const StartGameState = require('./startgamestate');
 const GameRegistry = require('./gameregistry');
+const Player = require('./player');
 
 /**
  * People are joining and leaving the game in this state.
@@ -21,7 +22,8 @@ class JoinGameState extends GameState {
      */
     onStartState(game){
         super.onStartState(game);
-        this.joinPlayer(game.host);
+        if(game.playerCount == 0) //new game
+            this.joinPlayer(game.host);
         this.sendMessageToGroup({
             message: this.parseStartMessage(),
             keyboard:  this.getStartMessageKeyboard(),
@@ -96,7 +98,7 @@ class JoinGameState extends GameState {
         let players = this.game.players;
         if(players[player.id])
             return 'The player is already in the game!';
-        players[player.id] = player;
+        players[player.id] = new Player(player);
         console.log('joining player', this.parseUserName(player));
         this.game.playerCount++;
     }
@@ -115,10 +117,9 @@ class JoinGameState extends GameState {
     enableTestMode(count){
         let game = this.game;
         game.testMode = true;
-        game.players = {};
-        game.playerCount = 0;
-        this.joinPlayer(game.host);
-        for(let i = 1; i < count; i++){
+        let i = 0;
+        while(game.playerCount < count){
+            i++;
             let newObj = {
                 id: `TEST${i}`,
                 first_name: 'Test Person',
@@ -126,7 +127,11 @@ class JoinGameState extends GameState {
             };
             this.joinPlayer(newObj);
         }
-        this.updateStartMessage();
+        if(i > 0)
+            this.updateStartMessage();
+    }
+    sendStatus(){
+        this.sendMessageToGroup({message: 'The game has not started yet!'});
     }
 }
 module.exports = JoinGameState;

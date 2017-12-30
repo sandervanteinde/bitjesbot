@@ -15,7 +15,7 @@ let url = `bot${config.API_KEY}`;
 /**
  * @param {string} command
  * @param {string} help
- * @param {function(object,string,string[]):void} callback 
+ * @param {function(TelegramMessage,string,string[]):void} callback 
  */
 function registerSlashCommand(command, help, callback){
     if(slashCommands[command])
@@ -24,17 +24,10 @@ function registerSlashCommand(command, help, callback){
     slashCommands[command] = obj;
     slashCommands[`${command}@${config.botName}`] = obj;
 }
-/**
- * @param {number} chatId 
- * @param {string} message 
- * @param {number} replyId
- * @param {function(any)} callback
- * @param {any[]} keyboard
- * @param {number} replyId 
- * @param {string} parse_mode
- * @param {function(any)} error
- */
 function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null, error}){
+    /**
+     * @type {TelegramSendMessage}
+     */
     let options = {
         chat_id: chatId,
         text: message
@@ -50,8 +43,9 @@ function sendMessage({chatId, message, callback = null, keyboard = [], replyId =
 
 /**
  * @param {string} method 
- * @param {object} body 
- * @param {function} callback 
+ * @param {*} body 
+ * @param {function(TelegramResponse<*>)} callback 
+ * @param {function(any)} error
  */
 function callApiMethod(method, body = null, callback, error){
     let postOptions = {
@@ -63,15 +57,15 @@ function callApiMethod(method, body = null, callback, error){
         },
         timeout: 5000
     };
-    let request = https.request(postOptions, (res) => bodyparser.parseJson(res, body => {
-        if(!body.ok){
+    let request = https.request(postOptions, (res) => bodyparser.parseJson(res, responseBody => {
+        if(!responseBody.ok){
             if(error)
-                error(body);
+                error(responseBody);
             else
-                console.error('Unhandled wrongly parsed message!', body);
+                console.error('Unhandled wrongly parsed message!', responseBody);
         }
         else if(callback)
-            callback(body);
+            callback(responseBody);
     }));
     if(error)
         request.on('error', error);
@@ -90,9 +84,16 @@ function callApiMethod(method, body = null, callback, error){
         request.write(JSON.stringify(body));
     request.end();
 }
+/**
+ * @param {TelegramMessage} msg 
+ */
 function sendUnknownCommand(msg){
     sendMessage({chatId: msg.chat.id, message: 'Unknown command. Type /help for commands!'});
 }
+/**
+ * 
+ * @param {TelegramMessage} msg 
+ */
 function processTextMessage(msg){
     let [command, ...args] = msg.text.split(' ');
     if(command[0] != '/') return; // we do not handle slash commands
@@ -104,6 +105,9 @@ function processTextMessage(msg){
         sendUnknownCommand(msg);
     }
 }
+/**
+ * @param {TelegramMessage} msg 
+ */
 function processMessage(msg){
     log.debug(msg);
     if(msg.text)
@@ -111,6 +115,10 @@ function processMessage(msg){
     else
         sendUnknownCommand(msg);
 }
+/**
+ * 
+ * @param {TelegramUpdate} update 
+ */
 function onMessageReceived(update){
     if(update.message)
         processMessage(update.message);
@@ -158,7 +166,7 @@ function helpCallback(msg){
     sendMessage({chatId: msg.chat.id, message: sendMsg});
 }
 function aboutCallback(msg){
-    sendMessage({chatId: msg.chat.id, message: 'This bot is made by Sande van \'t Einde.\nYou can view the source at https://www.github.com/sandervanteinde/bitjesbot'});
+    sendMessage({chatId: msg.chat.id, message: 'This bot is made by Sander van \'t Einde.\nYou can view the source at https://www.github.com/sandervanteinde/bitjesbot'});
 }
 /**
  * 

@@ -9,6 +9,7 @@ class KeyboardHandler {
      * @param {string} text 
      * @param {string} callbackName
      * @param {string[]} params
+     * @returns {TelegramInlineKeyboardButton}
      */
     button(text, callbackName, ...params){
         if(!this.callbacks[callbackName])
@@ -24,17 +25,20 @@ class KeyboardHandler {
     /**
      * 
      * @param {string} name 
-     * @param {function(Object,string,string[]):void} callback 
+     * @param {function(TelegramCallbackQuery,string,string[]):void} callback 
      */
     registerCallback(name, callback){
         this.callbacks[name] = callback;
     }
     /**
-     * @param {object} msg 
+     * @param {TelegramCallbackQuery} msg 
      */
     handleCallback(msg){
         let fullName = msg.data;
         let [name, ...params] = fullName.split('|');
+        /**
+         * @type {function(TelegramCallbackQuery,string,string[]):void}
+         */
         let callback = this.callbacks[name];
         if(!callback){
             console.error(`Received an unknown keyboard button callback: ${name}`);

@@ -119,7 +119,7 @@ class StartGameState extends GameState{
                 },
                 error: () => {} //do nothing with the error, we know this can fail and already handled it by this code
             });
-        }, 2500));
+        }, 60000));
         if(this.intervals.length == 1){
             setTimeout(() => {
                 for(let i in this.rolesReceived)

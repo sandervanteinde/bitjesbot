@@ -140,8 +140,8 @@ class GameSession{
 }
 class Trivia{
     constructor(){
-        bot.registerSlashCommand('trivia', 'Start a trivia session. Only usable in group chats', (...params) => this.onTriviaRequestReceived(...params));
-        bot.registerSlashCommand('stoptrivia', null, (...params) => this.onTriviaStopRequested(...params));
+        bot.registerSlashCommand('trivia', 'Start a trivia session. Only usable in group chats', (...params) => this.onTriviaRequestReceived(...params), {groupOnly: true});
+        bot.registerSlashCommand('stoptrivia', null, (...params) => this.onTriviaStopRequested(...params), {groupOnly: true});
         /**
          * @type {Object.<number, GameSession>}
          */
@@ -158,9 +158,7 @@ class Trivia{
         session.checkRightAnswer(msg, answerId);
     }
     onTriviaRequestReceived(msg){
-        if(msg.chat.type != 'group'){
-            bot.sendMessage({chatId: msg.chat.id, message: 'Trivia is only enabled in groups'});
-        }else if(this.sessions[msg.chat.id]){
+        if(this.sessions[msg.chat.id]){
             bot.sendMessage({chatId: msg.chat.id, message: 'A session is already going!'});
         }else{
             bot.sendMessage({chatId: msg.chat.id, message: 'Starting trivia session. The questions will start in 30 seconds. Type /stoptrivia to stop!'});

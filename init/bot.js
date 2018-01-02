@@ -17,10 +17,10 @@ let url = `bot${config.API_KEY}`;
  * @param {string} help
  * @param {function(TelegramMessage,string,string[]):void} callback 
  */
-function registerSlashCommand(command, help, callback){
+function registerSlashCommand(command, help, callback, {groupOnly = false} = {}){
     if(slashCommands[command])
     error('A command with the name ' + command + 'already exists!');
-    let obj = {help, callback};
+    let obj = {help, callback, groupOnly};
     slashCommands[command] = obj;
     slashCommands[`${command}@${config.botName}`] = obj;
 }
@@ -100,20 +100,19 @@ function processTextMessage(msg){
     command = command.substring(1).toLowerCase();
     let callback = slashCommands[command];
     if(callback){
-        callback.callback(msg, command, ...args);
-    }else{
+        if(callback.groupOnly && msg.chat.type != 'group')
+            sendMessage({chatId: msg.chat.id, message: 'This command is only available to group chats.'});
+        else
+            callback.callback(msg, command, ...args);
+    }else
         sendUnknownCommand(msg);
-    }
 }
 /**
  * @param {TelegramMessage} msg 
  */
 function processMessage(msg){
-    log.debug(msg);
     if(msg.text)
         processTextMessage(msg);
-    else
-        sendUnknownCommand(msg);
 }
 /**
  * 
@@ -155,10 +154,15 @@ function setWebhook(domain){
     log.debug(`Setting webhook to: ${webhookUrl}`);
     callApiMethod('setWebhook', {url: webhookUrl});
 }
+/**
+ * @param {TelegramMessage} msg 
+ */
 function helpCallback(msg){
-    commands = [];
+    let commands = [];
     for(let slashCommand in slashCommands){
         if(slashCommand.indexOf('@') >= 0) continue;
+        let data = slashCommands[slashCommand];
+        if(data.groupOnly && msg.chat.type != 'group') continue;
         if(slashCommands[slashCommand].help)
             commands.push(`/${slashCommand} - ${slashCommands[slashCommand].help}`);
     }

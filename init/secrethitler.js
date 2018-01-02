@@ -5,11 +5,14 @@ const GameRegistry = require('./secrethitler/gameregistry');
 
 class SecretHitler{
     constructor(){
-        bot.registerSlashCommand('secrethitler', 'Starts a game of Secret Hitler!', (...params) => this.onGameRequested(...params));
+
         keyboard.registerCallback('secr-hit', (...params) => this.onKeyboardResponse(...params));
-        bot.registerSlashCommand('secrethitlertestmode', null, (...params) => this.onSetTestMode(...params));
-        bot.registerSlashCommand('testsh', null, (...params) => this.onTestCommand(...params));
-        bot.registerSlashCommand('shstatus', 'Requests the status of the current Secret Hitler game.', (...params) => this.onStatusRequested(...params));
+
+        bot.registerSlashCommand('secrethitler', 'Starts a game of Secret Hitler!', (...params) => this.onGameRequested(...params), {groupOnly: true});
+        bot.registerSlashCommand('shstatus', 'Requests the status of the current Secret Hitler game.', (...params) => this.onStatusRequested(...params), {groupOnly: true});
+
+        bot.registerSlashCommand('secrethitlertestmode', null, (...params) => this.onSetTestMode(...params), {groupOnly: true});
+        bot.registerSlashCommand('testsh', null, (...params) => this.onTestCommand(...params), {groupOnly: true});
     }
     /**
      * 
@@ -33,9 +36,7 @@ class SecretHitler{
      * @param {TelegramMessage} msg 
      */
     onGameRequested(msg){
-        if(msg.chat.type != 'group')
-            bot.sendMessage({chatId: msg.chat.id, message: 'Secret Hitler is only enabled in groups'});
-        else if(GameRegistry.getGame(msg.chat.id))
+        if(GameRegistry.getGame(msg.chat.id))
             bot.sendMessage({chatId: msg.chat.id, message: 'A game of secret hitler is already ongoing!'});
         else
         {

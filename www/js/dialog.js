@@ -226,8 +226,8 @@ class PickChancellorDialog extends Dialog{
     }
     isEligibleForChancellor(seat){
         return seat != game.president && 
-        seat != game.previousPresident &&
-        (seat != game.previousChancellor || game.alivePlayers <= 5) &&
+        (seat != game.previousPresident || game.alivePlayers <= 5) &&
+        seat != game.previousChancellor &&
         game.players[game.turnOrder[seat]].alive;
     }
 }

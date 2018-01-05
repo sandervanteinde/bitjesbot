@@ -5,11 +5,14 @@ const Player = require('./player');
 const PolicyCard = require('./policycard');
 const arrayUtil = require('./../../utils/arrayutil');
 const Emoji = require('../../utils/emoji');
+const config = require('../../config');
+const PrivateMessage = require('./privateMessage');
 
 class GameState{
     constructor(){
         if(this.constructor == GameState)
             throw 'Can\'t construct the abstract class GameState';
+        this._callbacks = [];
     }
     /**
      * @param {SecretHitlerGame} game 
@@ -31,7 +34,8 @@ class GameState{
      * @param {SecretHitlerGame} game 
      */
     onEndState(game){
-
+        for(let callback of this._callbacks)
+            this.game.eventEmitter.removeListener(callback.event, callback.func);
     }
     /**
      * 
@@ -56,7 +60,7 @@ class GameState{
     /**
      * @param {*} options 
      */
-    sendMessageToGroup(options = {message: '', keyboard: null, callback: null}){
+    sendMessageToGroup(options = {message: '', keyboard: null, callback: null, emitEvent: true}){
         let callback = options.callback;
         let game = this.game;
         options.chatId = this.game.chatId;
@@ -66,6 +70,8 @@ class GameState{
         else{
             game.isMessageBeingSent = true;
             bot.sendMessage(options);
+            if(options.emitEvent)
+                this.emitEvent('message', {from: {username: config.botName}, text: options.message});
         }
     }
     /**
@@ -86,41 +92,19 @@ class GameState{
      * @returns {void}
      */
     editPrivateMessage(user, msgId, message, obj = {keyboard: null, parse_mode: null}){
-        bot.editMessage(user.id, msgId, message, obj);
+        user.privateMessageHandler.editMessage(msgId, new PrivateMessage('', message, undefined, obj.callback, obj.keyboard));
+        //bot.editMessage(user.id, msgId, message, obj);
     }
     /**
      * 
      * @param {Player} user 
-     * @param {*} options 
+     * @param {PrivateMessage} options 
      * @returns {void}
      */
-    sendMessageToUser(user, options = {message: '', keyboard: null}){
-        if(typeof user.id == 'string' && user.id.startsWith('TEST')){
-            return this.sendTestPersonPrivateMessageToConsole(user, options);
-        }
-        options.chatId = user.id;
-        bot.sendMessage(options);
-    }
-    sendTestPersonPrivateMessageToConsole(user, options = {message: '', keyboard: null}){
-        let {message, keyboard, callback} = options;
-        console.log(`Sending private message to ${user.id}: ${message}`);
-        if(keyboard){
-            console.log('Available keyboard:')
-            for(let i = 0; i < keyboard.length; i++)
-            {
-                let row = keyboard[i];
-                for(let j = 0; j < row.length; j++){
-                    /**
-                     * @type {TelegramInlineKeyboardButton}
-                     */
-                    let button = row[j];
-                    console.log(`${i}/${j}: ${button.text} (${button.callback_data})`);
-                }
-            }
-        }
-        if(callback){
-            callback({ok: true, result: {message_id: false}});//mock test data?
-        }
+    sendMessageToUser(user, options){
+        if(!options instanceof PrivateMessage)
+            throw 'Please convert options to a Private Message object';
+        user.privateMessageHandler.sendMessage(options);
     }
     /**
      * @param {Player} user 
@@ -160,8 +144,9 @@ class GameState{
      */
     drawPolicyCards(count){
         let game = this.game;
-        if(game.drawDeck.length < count)
+        if(game.drawDeck.length < count){
             this.shuffleDiscardIntoDrawDeck();
+        }
         return game.drawDeck.splice(0, 3);
     }
     shuffleDiscardIntoDrawDeck(){
@@ -170,6 +155,7 @@ class GameState{
         game.drawDeck.push(...game.discardDeck);
         game.discardDeck = [];
         arrayUtil.shuffle(game.drawDeck, 100);
+        this.emitEvent('draw_deck_reshuffled');
     }
     incrementElectionTracker(){
         let game = this.game;
@@ -185,6 +171,22 @@ class GameState{
             let presidentState = require('./presidentpickchancellorstate');//prevent circular dependency
             this.game.setState(new presidentState(newPresident));
         }
+        this.emitEvent('election_tracker_increment');
+    }
+    /**
+     * @param {string} eventName 
+     * @param {any} obj 
+     */
+    emitEvent(eventName, ...params){
+        this.game.eventEmitter.emit(eventName, ...params);
+    }
+    /**
+     * @param {string} eventName 
+     * @param {function(*):void} callback 
+     */
+    on(eventName, callback){
+        this.game.eventEmitter.on(eventName, callback);
+        this._callbacks.push({event: eventName, func: callback});
     }
     sendStatus(){
         let message = 'Current players (by turn Order):\n';

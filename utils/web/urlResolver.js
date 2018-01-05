@@ -26,7 +26,8 @@ class UrlResolver{
         for(let i = 0; i < this.ignoresUrls.length; i++)
             if(url.startsWith(this.ignoresUrls[i]))
                 return callback(false);
-        let attemptIndex = index=> {
+
+        let attemptIndex = index => {
             if(index >= this.strategies.length)
                 return callback(false);
             let [strategy, handler] = this.strategies[index];

@@ -72,6 +72,7 @@ class VoteForGovernment extends GameState{
             return 'You are not alive or part of the game. You can\'t vote!';
         let firstVote = this.votes[id] === null;
         this.votes[id] = Boolean(vote == 'yes');
+        this.emitEvent('player_voted', id);
         let allVoted = this.checkAllVoted();
         if(firstVote){
             if(this.message && !allVoted) //if this is undefined, we're already out of this state, prevent editing
@@ -117,6 +118,7 @@ class VoteForGovernment extends GameState{
             else
                 this.game.setState(new LegislativeStatePresident());
         }
+        this.emitEvent('vote_result', {yes: yesCount, no: noCount, votes});
         return true;
     }
 }

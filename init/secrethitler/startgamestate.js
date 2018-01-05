@@ -5,6 +5,7 @@ const arrayUtil = require('../../utils/arrayutil');
 const config = require('../../config');
 const InitGameState = require('./initgamestate');
 const Player = require('./player');
+const PrivateMessage = require('./privateMessage');
 /**
  * The state when the host has decided to start the game.
  * In this state the roles are assigned and handed to the player.
@@ -55,70 +56,80 @@ class StartGameState extends GameState{
             msg += '\nThe other fascist is:';
         else if(fascists.length > 2)
             msg += '\nThe other fascists are:';
-        
+        let data = [{id: hitler.id, role: 'Hitler'}];
+        for(let fascist of fascists)
+            data.push({id: fascist.id, role: 'Fascist'});
+        for(let liberal of this.game.liberals())
+            data.push({id: liberal.id, role: 'Liberal'});
         for(let i = 0; i < fascists.length; i++){
             let copy = msg;
             for(let j = 0; j < fascists.length; j++){
                 if(i == j) continue;
                 copy += `\n- ${this.parseUserName(fascists[j])}`;
             }
-            this.announceToPlayer(fascists[i], copy);
+            this.announceToPlayer(fascists[i], copy, data);
         }
         let hitlerMsg;
-        if(this.game.playerCount < 7){
+        if(this.game.playerCount < 7)
             hitlerMsg = `You are hitler!\nThe other fascist is:\n- ${this.parseUserName(fascists[0])}`;
+        else{
+            hitlerMsg = 'You are hitler!\nYou do not know who the fascists are.';
+            data = [data[0]]; //only annonce Hitler himself to hitler
         }
-        else
-            hitlerMsg = 'You are hitler! You do not know who the fascists are.';
-        this.announceToPlayer(hitler, hitlerMsg);
+        this.announceToPlayer(hitler, hitlerMsg, data);
     }
     /**
      * @param {Player[]} liberals 
      */
     announceLiberals(liberals){
-        for(let i = 0; i < liberals.length; i++){
-            this.announceToPlayer(liberals[i], 'You are liberal!\nYou do not know who hitler, the fascists, or the other liberals are');
-        }
+        for(let liberal of liberals)
+            this.announceToPlayer(liberal, 'You are liberal!\nYou do not know who hitler, the fascists, or the other liberals are', [{id: liberal.id, role: 'Liberal'}]);
     }
     /**
      * 
      * @param {Player} player 
      * @param {string} message 
      */
-    announceToPlayer(player, message){
+    announceToPlayer(player, message, data){
         let playerId = player.id;
         this.rolesReceived[playerId] = false;
-        this.sendMessageToUser(player,{
+        this.sendMessageToUser(player,new PrivateMessage(
+            'announce_role',
             message,
-            callback: msg => this.rolesReceived[playerId] = true,
-            error: err => {
+            data,
+            msg => this.rolesReceived[playerId] = true,
+            undefined,
+            err => {
                 if(err.error_code == 403){
                     this.sendMessageToGroup({
                         message: `${this.parseUserName(player)}: I was unable to send you a direct message.\nGo to @${config.botName} and start the bot to allow me to PM you!\nYou have 60 seconds to respond or the game will be terminated.`
                     });
-                    this.attemptResendRole(player, message);
+                    this.attemptResendRole(player, message, data);
                 }
             }
-        });
+        ));
     }
     /**
      * @param {Player} player 
      * @param {string} message 
      */
-    attemptResendRole(player, message){
+    attemptResendRole(player, message, data){
         let interval;
         this.intervals.push(interval = setInterval(() => {
-            this.sendMessageToUser(player, {
+            this.sendMessageToUser(player, new PrivateMessage(
+                'announce_role',
                 message,
-                callback: () => {
+                data,
+                () => {
                     clearInterval(interval);
                     let index = this.intervals.indexOf(interval);
                     this.intervals.splice(index, 1);
                     this.rolesReceived[player.id] = true;
                     this.checkEveryoneReady();
                 },
-                error: () => {} //do nothing with the error, we know this can fail and already handled it by this code
-            });
+                undefined,
+                () => {} //do nothing with the error, we know this can fail and already handled it by this code
+            ));
         }, 60000));
         if(this.intervals.length == 1){
             setTimeout(() => {

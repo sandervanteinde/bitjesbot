@@ -104,6 +104,11 @@ class Component{
          * @type {string[]}
          */
         this.scripts = [];
+        /**
+         * @type {string[]}
+         */
+        this.styles = [];
+        this.requiredParameters = [];
         this.telegramLink = request.cookies.key;
     }
     /**
@@ -121,6 +126,16 @@ class Component{
         scope.setScope();
         let stream = fs.createReadStream(`${config.websiteDirectory}/templates/${this.getTemplate()}`, {encoding: 'utf8'});
         writeHTML(scope, stream, request, onComplete);
+    }
+    /**
+     * @param {Request} request 
+     * @returns {boolean} should execution continue
+     */
+    preParseRequest(request){
+        return true;
+    }
+    postParseRequest(request){
+        
     }
 }
 module.exports = Component;

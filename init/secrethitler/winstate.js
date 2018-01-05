@@ -23,6 +23,7 @@ class WinState extends GameState{
             }
             this.sendMessageToGroup({message});
         }, 5000);
+        this.emitEvent('winner', {winner: this.winner, reason: this.reason, players: this.game.players});
         setTimeout(() => this.game.setState(new JoinGameState()), 10000);
     }
 }

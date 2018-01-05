@@ -1,5 +1,6 @@
 const PresidentAction = require('./presidentaction');
 const PresidentPickChancellorState = require('../presidentpickchancellorstate');
+const PrivateMessage = require('../privateMessage');
 class CallSpecialElection extends PresidentAction{
     getDescription(){
         return 'The president is allowed to choose who gets elected as next president';
@@ -15,7 +16,7 @@ class CallSpecialElection extends PresidentAction{
         this.game.specialElectionPresident = this.game.president;
         let msg = this.getMessage();
         msg.callback = m => this.message = m.result.message_id;
-        this.sendMessageToUser(this.president, msg);
+        this.sendMessageToUser(this.president, new PrivateMessage('special_election', msg.message, null, msg.callback, msg.keyboard));
     }
     getMessage(){
         let keyboard = this.getKeyboardForPlayers(this.victims, 'make-president', p => this.parseUserName(p));
@@ -50,7 +51,7 @@ class CallSpecialElection extends PresidentAction{
             if(this.message)
                 this.editPrivateMessage(this.president, this.message, msg.message, msg);
             else
-                this.sendMessageToUser(this.president, msg);
+                this.sendMessageToUser(this.president, new PrivateMessage('special_election', msg.message, null, msg.callback, msg.keyboard));
         }else if(name == 'confirm-make-president'){
             let target = this.victims[this.target];
             this.game.setState(new PresidentPickChancellorState(target.seat));

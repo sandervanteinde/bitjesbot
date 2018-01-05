@@ -9,8 +9,37 @@ const arrayUtil = require('../../utils/arrayutil');
 const Player = require('./player');
 const PolicyCard = require('./policycard');
 const PresidentAction = require('./presidentactions/presidentaction');
+const EventEmitter = require('events');
+class SecretHitlerEventEmitter extends EventEmitter{
+    constructor(){
+        super();
+        this.jokers = [];
+    }
+    on(event, callback){
+        if(event == '*')
+            this.jokers.push(callback);
+        else
+            super.on(event, callback);
+    }
+    removeListener(event, callback){
+        if(event == '*')
+        {
+            let index = this.jokers.indexOf(callback);
+            if(index >= 0)
+                this.jokers.splice(index, 1);
+        }
+        else
+            super.removeListener(event, callback);
+    }
+    emit(event, ...params){
+        for(let callback of this.jokers)
+            callback(event, ...params);
+        super.emit(event, ...params);
+    }
+}
 class SecretHitlerGame{
     constructor(chatId, host){
+        this.allowWebChat = true;
         this.chatId = chatId;
         this.host = host;
         /**
@@ -19,10 +48,7 @@ class SecretHitlerGame{
         this.players = {};
         this.playerCount = 0;
         this.testMode = false;
-        /**
-         * @type {GameState}
-         */
-        this.setState(new JoinGameState());
+
         /**
          * The turn order. Each entry is the player id as seen in this.players
          * @type {number[]}
@@ -89,6 +115,8 @@ class SecretHitlerGame{
          * @type {number} seatId of the president
          */
         this.specialElectionPresident = undefined;
+        this.eventEmitter = new SecretHitlerEventEmitter();
+        this.setState(new JoinGameState());
     }
     /**
      * @param {TelegramCallbackQuery} msg
@@ -99,6 +127,42 @@ class SecretHitlerGame{
     handleButtonCallback(msg, name, ...params){
         return this.state.handleInput(this, msg, name, ...params);
     }
+    /**
+     * @returns {object} Object containing all info the web users can see
+     */
+    getWebsocketState(){
+        let obj = {
+            drawDeck: this.drawDeck && this.drawDeck.length || 17,
+            discardDeck: this.discardDeck && this.discardDeck.length || 0
+        };
+        const ignores = {
+            drawDeck: true,
+            discardDeck: true,
+            state: true,
+            players: true,
+            host: true,
+            eventEmitter: true
+        };
+        for(let key in this){
+            if(ignores[key]) continue;
+            obj[key] = this[key];
+        }
+        let playerInfo = {};
+        for(let playerId in this.players){
+            let player = this.players[playerId];
+            let copy = {};
+            for(let key in player){
+                if(key == 'role' || key == 'privateMessageHandler') continue;
+                copy[key] = player[key];
+            }
+            if(this.host.id == player.id)
+                obj.host = copy;
+            playerInfo[playerId] = copy;
+        }
+        obj.players = playerInfo;
+        obj.state = this.state.constructor.name;
+        return obj;
+    }
     enableTestMode(count){
         if(this.state.enableTestMode)
             this.state.enableTestMode(count);
@@ -107,11 +171,13 @@ class SecretHitlerGame{
      * @param {GameState} state 
      */
     setState(state){
-        if(this.state)
-            this.state.onEndState(this);
+        let oldState = this.state;
+        if(oldState)
+            oldState.onEndState(this);
         this.state = state;
         if(this.state)
             this.state.onStartState(this);
+        state.emitEvent('state_changed', {old: oldState && oldState.constructor.name, new: state.constructor.name});
     }
     /**
      * @param {number} playerId 

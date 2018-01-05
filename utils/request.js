@@ -10,7 +10,27 @@ function parseCookies(request, cookieString){
         request.cookies[key] = value;
     });
 }
-
+/**
+ * @param {Request} request 
+ */
+function parseQueryParameters(request){
+    let url = request.path;
+    let queryIndex = url.indexOf('?');
+    if(queryIndex < 0) return;
+    request.request.url = url.substring(0, queryIndex);
+    let queryParamsString = url.substring(queryIndex + 1);
+    let queryParams = queryParamsString.split('&');
+    for(let i = 0; i < queryParams.length; i++){
+        let param = queryParams[i];
+        if(param.indexOf('=') == -1)
+            request.params[param] = '';
+        else{
+            let test = param.split('=');
+            let [key, value] = test;
+            request.params[key] = value;
+        }
+    }
+}
 class Request{
     /**
      * @param {IncomingMessage} request 
@@ -26,9 +46,20 @@ class Request{
         /**
          * @type {Object.<string, string>}
          */
+        this.params = {};
+        /**
+         * @type {Object.<string, string>}
+         */
         this.cookies = {};
         if(request.headers.cookie)
             parseCookies(this, request.headers.cookie);
+        parseQueryParameters(this);
+    }
+    badRequest(reason){
+        this.response.statusCode = 400;
+        if(reason)
+            this.write(reason);
+        this.response.end();
     }
     notFound(){
         this.response.statusCode = 404;

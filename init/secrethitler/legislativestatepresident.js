@@ -4,6 +4,7 @@ const keyboard = require('../../utils/keyboard');
 const Emoji = require('../../utils/emoji');
 const PolicyCard = require('./policycard');
 const LegislativeStateChancellor = require('./legislativestatechancellor');
+const PrivateMessage = require('./privateMessage');
 class LegislativeStatePresident extends GameState{
     /**
      * 
@@ -18,7 +19,8 @@ class LegislativeStatePresident extends GameState{
             this.cards.push({card, picked: false});
         let msg = this.getPickACardMessage(this.president);
         msg.callback = (msg) => this.message = msg.result.message_id;
-        this.sendMessageToUser(this.president, msg);
+        this.sendMessageToUser(this.president, new PrivateMessage('pick_card_president', msg.message, this.cards, msg.callback, msg.keyboard));
+        this.emitEvent('president_draw_policy');
     }
     getPickACardMessage(){
         let policyKeyboard = [];
@@ -34,7 +36,6 @@ class LegislativeStatePresident extends GameState{
         return {
             message: `Please pick the cards you wish to give to the Chancellor`,
             keyboard: policyKeyboard,
-            //callback: (msg) => this.message = msg.result.message_id,
         };
     }
     /**
@@ -54,7 +55,7 @@ class LegislativeStatePresident extends GameState{
                 this.editPrivateMessage(this.president, this.message, message.message, message);
             }else{
                 message.callback = (msg) => this.message = msg.result.message_id;
-                this.sendMessageToUser(this.president, message);
+                this.sendMessageToUser(this.president, new PrivateMessage('pick_card_president', message.message, this.cards, message.callback, message.keyboard));
             }
         }else if(name == 'confirm-pick-card'){
             /**
@@ -80,12 +81,13 @@ class LegislativeStatePresident extends GameState{
                 this.editPrivateMessage(this.president, this.message, msg);
             }
             this.game.discardDeck.push(discardCard);
+            this.emitEvent('president_discard_card');
             this.game.setState(new LegislativeStateChancellor(pickedCards));
         }else
             return super.handleInput(game, msg, name);
     }
     onEndState(){
-        this.sendMessageToGroup({message: `${this.parseUserName(this.president)} has discared a card and given 2 cards to ${this.parseUserName(this.getPlayerBySeat(this.game.chancellor))}`});
+        this.sendMessageToGroup({message: `${this.parseUserName(this.president)} has discarded a card and given 2 cards to ${this.parseUserName(this.getPlayerBySeat(this.game.chancellor))}`});
     }
 }
 module.exports = LegislativeStatePresident;

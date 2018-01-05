@@ -25,6 +25,8 @@ class EndOfLegislativeState extends GameState{
         if(this.byPresident){
             this.game.previousChancellor = this.game.chancellor;
             this.game.previousPresident = this.game.president;
+            this.emitEvent('new_previous_president', this.game.president);
+            this.emitEvent('new_previous_chancellor', this.game.chancellor);
         }
         this.sendMessageToGroup({message: `A ${this.playCard.faction} card was played!`});
         if(this.playCard.faction == Faction.Fascist){

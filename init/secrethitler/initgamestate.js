@@ -22,9 +22,11 @@ class InitGameState extends GameState{
         game.alivePlayers = game.turnOrder.length;
         game.drawDeck = PolicyDeck.create();
         game.discardDeck = [];
-        game.fascistsCardsPlayed = 3;
+        game.fascistsCardsPlayed = 0;
         game.liberalCardsPlayed = 0;
         game.electionTracker = 0;
+        game.previousChancellor = -1;
+        game.previousPresident = -1;
         if(game.playerCount < 7){ //5 or 6 players
             game.presidentActions = [null, null, PolicyPeek, Execution, Execution, null];
         }else if(game.playerCount > 8){ //9 or 10 players
@@ -44,7 +46,7 @@ class InitGameState extends GameState{
         }
         let callback = () => this.game.setState(new PresidentPickChancellorState(0));
         this.sendMessageToGroup({message, callback});
-        console.log('init state', game);
+        this.emitEvent('start_game', game.getWebsocketState());
     }
 }
 module.exports = InitGameState;

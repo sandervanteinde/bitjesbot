@@ -191,8 +191,8 @@ declare class TelegramInlineKeyboardMarkup{
 }
 declare class TelegramInlineKeyboardButton{
     public text : string;
-    public url : string;
     public callback_data : string;
+    public url : string;
     public switch_inline_query : string;
     public switch_inline_query_current_chat : string;
     public callback_game : TelegramCallbackGame;

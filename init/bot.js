@@ -11,6 +11,7 @@ let slashCommands = {};
 let polling = false;
 let lastMessage = 0;
 let url = `bot${config.API_KEY}`;
+let onPlainTextMessage = [];
 
 /**
  * @param {string} command
@@ -91,12 +92,15 @@ function sendUnknownCommand(msg){
     sendMessage({chatId: msg.chat.id, message: 'Unknown command. Type /help for commands!'});
 }
 /**
- * 
  * @param {TelegramMessage} msg 
  */
 function processTextMessage(msg){
+    if(msg.text[0] != '/'){
+        if(onPlainTextMessage)
+            onPlainTextMessage(msg);
+        return;
+    }
     let [command, ...args] = msg.text.split(' ');
-    if(command[0] != '/') return; // we do not handle slash commands
     command = command.substring(1).toLowerCase();
     let callback = slashCommands[command];
     if(callback){
@@ -212,6 +216,9 @@ else{
     deleteWebhook();
     loop.subscribe(pollMessage);
 }
+function registerPlainTextMessageHandler(callback){
+    onPlainTextMessage = callback;
+}
 registerSlashCommand('help', 'This command', helpCallback);
 registerSlashCommand('about', 'About this bot', aboutCallback);
 
@@ -219,6 +226,7 @@ module.exports = {
     sendMessage,
     registerSlashCommand,
     answerCallbackQuery,
-    editMessage
+    editMessage,
+    registerPlainTextMessageHandler
 };
 log.info('Bot started!');

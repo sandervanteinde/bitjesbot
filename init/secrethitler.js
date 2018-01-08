@@ -2,6 +2,10 @@ const bot = require('./bot');
 const keyboard = require('../utils/keyboard');
 const SecretHitlerGame = require('./secrethitler/secrethitlergame');
 const GameRegistry = require('./secrethitler/gameregistry');
+const Player = require('./secrethitler/player');
+const WebSocketMessageHandler = require('./secrethitler/privateMessageHandlers/websocketMessageHandler');
+const ws = require('../utils/web/websocket');
+const guid = require('guid');
 
 class SecretHitler{
     constructor(){
@@ -13,6 +17,64 @@ class SecretHitler{
 
         bot.registerSlashCommand('secrethitlertestmode', null, (...params) => this.onSetTestMode(...params), {groupOnly: true});
         bot.registerSlashCommand('testsh', null, (...params) => this.onTestCommand(...params), {groupOnly: true});
+
+        bot.registerPlainTextMessageHandler(msg => this.handlePlainTextMessage(msg));
+
+        ws.registerCallback('secret-hitler', (conn, {gameId, reconnect}) => this.onWebsocketJoined(conn, gameId, reconnect));
+        ws.registerCallback('sh_web_message', (conn, obj) => this.onWebMessage(conn, obj));
+        ws.registerCallback('sh_request_join', (conn, playerName) => this.onWebRequestJoin(conn, playerName));
+        ws.registerCallback('sh_mimic_telegram', (conn, params) => this.onMimicTelegram(conn, params));
+    }
+    onMimicTelegram(connection, {gameId, playerId, params}){
+        let game = GameRegistry.getGame(gameId);
+        if(!game) return;
+        let name;
+        [name, ...params] = params;
+        game.handleButtonCallback({
+            from: game.players[playerId],
+            chat: {id: gameId}
+        }, name, ...params)
+    }
+    /**
+     * @param {TelegramMessage} message
+     */
+    handlePlainTextMessage(message){
+        if(!message.text) return;
+        let game = GameRegistry.getGame(message.chat.id);
+        if(game && game.allowWebChat)
+            game.eventEmitter.emit('message', message);
+        
+    }
+    onWebRequestJoin(connection, {name, gameId}){
+        let game = GameRegistry.getGame(gameId);
+        if(!game)
+            return 'Game does not exist!';
+        if(!game.state.joinPlayer)
+            return `The game does not allow players to join right now`;
+        let playerGuid = guid.create().value;
+        game.addReconnectId(playerGuid, name);
+        ws.send(connection, 'sh_reconnect_id', playerGuid);
+        return game.state.joinPlayer({id: name, first_name: name}, new WebSocketMessageHandler(connection));
+    }
+    onWebMessage(connection, {from, message, game}){
+        let theGame = GameRegistry.getGame(game);
+        theGame.state.sendMessageToGroup( {message: `${from} said:\n${message}`, emitEvent: false});
+        theGame.eventEmitter.emit('message', {text: message, from: {id: from, first_name: from}});
+    }
+    onWebsocketJoined(connection, gameId, reconnect){
+        let game = GameRegistry.getGame(gameId);
+        if(!game) return;
+        ws.send(connection, 'sh_init_state', game.getWebsocketState());
+        let callback;
+        callback = (ev, ...params) => ws.send(connection, `sh_${ev}`, ...params);
+        game.eventEmitter.on('*', callback);
+        connection.on('close', () => game.eventEmitter.removeListener('*', callback));
+
+        if(!reconnect) return;
+        let playerId = game.getPlayerIdForReconnectGUID(reconnect);
+        if(!playerId) return;
+        game.players[playerId].privateMessageHandler = new WebSocketMessageHandler(connection); //set this players handler to this one instead
+        game.reconnect(playerId);
     }
     /**
      * 

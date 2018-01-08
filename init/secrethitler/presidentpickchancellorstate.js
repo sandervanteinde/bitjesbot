@@ -2,6 +2,7 @@ const GameState = require('./gamestate');
 const SecretHitlerGame = require('./secrethitlergame');
 const keyboard = require('../../utils/keyboard');
 const VoteForGovernment = require('./voteforgovernment');
+const Player = require('./player');
 /**
  * The state responsible for handling the president picking the Chancellor
  */
@@ -27,6 +28,7 @@ class PresidentPickChancellorState extends GameState{
             keyboard: this.constructKeyboardForPresident(),
             callback: (msg) => this.pick_message = msg.result.message_id
         });
+        this.emitEvent('new_president', this.newPresidentSeatId);
     }
     isInvalidChancellorCandidate(seat){
         let game = this.game;
@@ -63,7 +65,7 @@ class PresidentPickChancellorState extends GameState{
             return 'This candidate is not eligible to be a chancellor';
         let player = this.getPlayerBySeat(seatId);
         this.game.chancellor = seatId;
-        
+        this.emitEvent('new_chancellor', seatId);
         this.game.setState(new VoteForGovernment());
         //VoteForGovernment state is responsible for sending the message that the Chancellor is chosen. This way it can add the keyboard buttons required
         return `You picked ${this.parseUserName(player)}`;
@@ -75,6 +77,13 @@ class PresidentPickChancellorState extends GameState{
             let chancellor = this.getPlayerBySeat(game.chancellor);
             this.editGroupMessage(this.pick_message, `${this.parseUserName(president)} has chosen ${this.parseUserName(chancellor)} as his/her chancellor`);
         }
+    }
+    /**
+     * @param {Player} player 
+     */
+    onReconnect(player){
+        if(this.game.president == player.seat)
+            player.privateMessageHandler.handleEvent('new_president', this.newPresidentSeatId);
     }
 }
 module.exports = PresidentPickChancellorState;

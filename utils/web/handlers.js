@@ -48,14 +48,24 @@ class ComponentParser extends Handler{
          * @type {Component}
          */
         let component = new (require.main.require(request.path))(request);
+        if(component.requiredParameters.length > 0)
+            for(let key of component.requiredParameters)
+                if(request.params[key] === undefined)
+                    return request.badRequest(`Required parameter ${key} is missing`);
+        if(!component.preParseRequest(request)){
+            request.response.end();
+            return;
+        }
         request.setResponseStatusCode(200);
         request.setMimeForPath('text/html');
         request.write(this.preScripts);
+        this.parseStyles(component.styles, request);
         this.parseScripts(component.scripts, request)
         request.write(this.postScripts);
         component.writeHTML(request, () => {
             request.write(this.postBody);
             request.success();
+            component.postParseRequest(request);
         });
     }
     /**
@@ -66,6 +76,12 @@ class ComponentParser extends Handler{
         if(!scripts || scripts.length == 0) return;
         scripts.forEach(el => {
             request.write(`<script defer src="${el}"></script>\n`);
+        });
+    }
+    parseStyles(styles, request){
+        if(!styles || styles.length == 0) return;
+        styles.forEach(el => {
+            request.write(`<link rel='stylesheet' href='${el}'>\n`);
         });
     }
 }

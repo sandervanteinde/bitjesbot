@@ -4,6 +4,7 @@ const SecretHitlerGame = require('./secrethitlergame');
 const EndOfLegislativeState = require('./endoflegislativestate');
 const VetoState = require('./vetostate');
 const Emoji = require('../../utils/emoji');
+const PrivateMessage = require('./privateMessage');
 class LegislativeStateChancellor extends GameState{
     /**
      * @param {PolicyCard[]} cards 
@@ -25,7 +26,7 @@ class LegislativeStateChancellor extends GameState{
         this.president = this.getPlayerBySeat(game.president);
         let msg = this.getMessage();
         msg.callback = (msg) => this.message = msg.result.message_id;
-        this.sendMessageToUser(this.chancellor, msg);
+        this.sendMessageToUser(this.chancellor, new PrivateMessage('pick_card_chancellor', msg.message, this.cards, msg.callback, msg.keyboard));
     }
     getMessage(){
         let keyboard = [];
@@ -57,7 +58,7 @@ class LegislativeStateChancellor extends GameState{
             if(this.message)
                 this.editPrivateMessage(this.chancellor, this.message, msg.message, msg);
             else
-                this.sendMessageToUser(this.chancellor, msg);
+                this.sendMessageToUser(this.chancellor, new PrivateMessage('pick_card_chancellor', msg.message, this.cards, msg.callback, msg.keyboard));
         }else if(name == 'confirm-card'){
             let [pickedCard] = this.cards.splice(this.playCard, 1);
             let [discardCard] = this.cards;
@@ -65,12 +66,14 @@ class LegislativeStateChancellor extends GameState{
             if(this.message)
                 this.editPrivateMessage(this.chancellor, this.message, `You played the ${pickedCard.faction} card`);
             game.setState(new EndOfLegislativeState(pickedCard));
+            this.emitEvent('chancellor_plays_card', pickedCard);
         }else if(name == 'veto'){
+            this.emitEvent('chancellor_request_veto');
             game.setState(new VetoState(this));
             if(this.message)
                 this.editPrivateMessage(this.chancellor, this.message, 'Awaiting reply for veto-request...');
             else
-                this.sendMessageToUser(this.chancellor, {message: 'Awaiting reply for veto-request...'});
+                this.sendMessageToUser(this.chancellor, new PrivateMessage('chancellor_await_veto', 'Awaiting reply for veto-request...'));
         }else
             return super.handleInput(game, msg, name);
     }
@@ -80,11 +83,18 @@ class LegislativeStateChancellor extends GameState{
         if(this.message)
             this.editPrivateMessage(this.chancellor, this.message, msg.message, msg);
         else
-            this.sendMessageToUser(this.chancellor, msg);
+            this.sendMessageToUser(this.chancellor, new PrivateMessage('pick_card_chancellor', msg.message, this.cards, msg.callback, msg.keyboard));
+        this.emitEvent('veto_not_allowed');
     }
     vetoAllowed(){
         if(this.message)
             this.editPrivateMessage(this.chancellor, this.message, 'The veto was allowed!');
+        this.emitEvent('veto_allowed');
+    }
+    onReconnect(player){
+        if(this.chancellor.id != player.id) return;
+        let msg = this.getMessage();
+        this.sendMessageToUser(this.chancellor, new PrivateMessage('pick_card_chancellor', msg.message, this.cards, (msg) => this.message = msg.result.message_id, msg.keyboard));
     }
 }
 module.exports = LegislativeStateChancellor;

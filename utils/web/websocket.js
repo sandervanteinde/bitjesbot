@@ -1,9 +1,7 @@
 const ws = require('nodejs-websocket');
 const log = require('../log');
 const connect = require('../telegramconnect');
-const config = require('../../config');
 const bot = require('../../init/bot');
-const fs = require('fs');
 const EventHandler = require('../eventhandler');
 class WebSocketHandler{
     constructor(){
@@ -69,8 +67,14 @@ class WebSocketHandler{
             connection.id = connect.getIdFromGUID(obj.key);
         }
         let callback = this.callbacks[obj.id];
-        if(callback)
-            callback(connection, obj.content, obj.key);
+        let result = null;
+        let success = false;
+        if(callback){
+            success = true;
+            result = callback(connection, obj.content, obj.key);
+        }
+        if(obj.replyId)
+            this.send(connection, '_reply', {replyId: obj.replyId, success, result});
     }
     connectionClosed(connection, code, reason){
         let index = this.connections.indexOf(connection);
@@ -90,13 +94,9 @@ class WebSocketHandler{
      * @param {string} content 
      */
     sendToAllWhere(obj, id, content){
-        console.log(obj);
-        console.log(this.connections.length);
         for(let connection of this.connections){
-            console.log(connection);
             let send = true;
             for(let key in obj){
-                console.log(key, connection[key], obj[key]);
                 if(connection[key] != obj[key])
                 {
                     send = false;

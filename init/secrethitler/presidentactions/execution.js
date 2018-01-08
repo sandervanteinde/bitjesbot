@@ -2,6 +2,7 @@ const PresidentAction = require('./presidentaction');
 const Emoji = require('../../../utils/emoji');
 const WinState = require('../winstate');
 const Faction = require('../faction');
+const PrivateMessage = require('../privateMessage');
 class Execution extends PresidentAction{
     getDescription(){
         return 'The president may choose one person to kill';
@@ -14,8 +15,8 @@ class Execution extends PresidentAction{
          */
         this.targetIndex = undefined;
         let msg = this.getMessage();
-        msg.callback = (msg) => this.message = msg.result.message_id;
-        this.sendMessageToUser(this.president, msg);
+        let callback = (msg) => this.message = msg.result.message_id;
+        this.sendMessageToUser(this.president, new PrivateMessage('shoot_player', msg.message, null, callback, msg.keyboard));
     }
     getMessage(){
         let keyboard = this.getKeyboardForPlayers(this.victims, 'shoot', (p, i) => `${this.parseUserName(p)} ${i == this.targetIndex && Emoji.skull || ''}`)
@@ -51,6 +52,7 @@ class Execution extends PresidentAction{
             if(this.message)
                 this.editPrivateMessage(this.president, this.message, privMsg);
             this.sendMessageToGroup({message: `${this.parseUserName(this.president)} has shot ${this.parseUserName(target)}`});
+            this.emitEvent('player_shot', target.seat);
             if(target.role.isHitler)
                 this.game.setState(new WinState(Faction.Liberal, 'Hitler was shot!'));
             else
@@ -63,11 +65,16 @@ class Execution extends PresidentAction{
             if(this.message)
                 this.editPrivateMessage(this.president, this.message, msg.message, msg);
             else{
-                msg.callback = (msg) => this.message = msg.result.message_id;
-                this.sendMessageToUser(this.president, msg);
+                let callback = (msg) => this.message = msg.result.message_id;
+                this.sendMessageToUser(this.president, new PrivateMessage('shoot_player', msg.message, null, callback, msg.keyboard));
             }
         }else
             super.handleInput(game, msg, name, ...params);
+    }
+    onReconnect(player){
+        if(this.president.id != player.id) return;
+        let msg = this.getMessage();
+        this.sendMessageToUser(this.president, new PrivateMessage('shoot_player', msg.message, null, (msg) => this.message = msg.result.message_id, msg.keyboard));
     }
 }
 module.exports = Execution;

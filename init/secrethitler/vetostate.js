@@ -1,4 +1,5 @@
 const GameState = require('./gamestate');
+const PrivateMessage = require('./privateMessage');
 class VetoState extends GameState{
     /**
      * @param {GameState} parentState 
@@ -12,12 +13,12 @@ class VetoState extends GameState{
         this.chancellor = this.getPlayerBySeat(this.game.chancellor);
         this.president = this.getPlayerBySeat(this.game.president);
         this.sendMessageToGroup({message: `${this.parseUserName(this.chancellor)} has requested a VETO!`});
-        this.sendMessageToUser(this.president, {
-            message: 'The chancellor requested a VETO. Do you accept?',
-            keyboard: [
-                [this.getButton('Ja!', 'veto-reply', 'yes'), this.getButton('Nein!', 'veto-reply', 'no')]
-            ]
-        });
+        this.sendMessageToUser(this.president, new PrivateMessage('veto_requested', 
+            'The chancellor requested a VETO. Do you accept?',
+            null,
+            undefined,
+            [[this.getButton('Ja!', 'veto-reply', 'yes'), this.getButton('Nein!', 'veto-reply', 'no')]]
+        ));
     }
     /**
      * @param {SecretHitlerGame} game 
@@ -42,6 +43,16 @@ class VetoState extends GameState{
             this.parent.vetoNotAllowed();
             this.onEndState();
         }
+    }
+    onReconnect(player){
+        if(this.president.id != player.id) return;
+        this.sendMessageToUser(this.president, new PrivateMessage('veto_requested', 
+            'The chancellor requested a VETO. Do you accept?',
+            null,
+            undefined,
+            [[this.getButton('Ja!', 'veto-reply', 'yes'), this.getButton('Nein!', 'veto-reply', 'no')]]
+        ));
+
     }
 }
 module.exports = VetoState;

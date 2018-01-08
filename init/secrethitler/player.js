@@ -1,6 +1,10 @@
 const Role = require('./role');
+const PrivateMessageHandler = require('./privateMessageHandlers/privateMessageHandler');
 class Player{
-    constructor({id, first_name, last_name, username} = {}){
+    /**
+     * @param {PrivateMessageHandler} messageHandler 
+     */
+    constructor(messageHandler, {id, first_name, last_name, username} = {}){
         /**
          * @type {number}
          */
@@ -33,6 +37,18 @@ class Player{
          * @type {boolean}
          */
         this.confirmedNotHitler = false;
+        /**
+         * @type {PrivateMessageHandler}
+         */
+        this.privateMessageHandler = messageHandler;
+    }
+    toJSON(){
+        let obj = {};
+        for(let field in this){
+            if(field == 'privateMessageHandler' || field == 'role') continue;
+            obj[field] = this[field];
+        }
+        return obj;
     }
 }
 module.exports = Player;

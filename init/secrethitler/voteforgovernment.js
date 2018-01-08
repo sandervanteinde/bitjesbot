@@ -3,6 +3,7 @@ const SecretHitlerGame = require('./secrethitlergame');
 const LegislativeStatePresident = require('./legislativestatepresident');
 const WinState = require('./winstate');
 const Faction = require('./faction');
+const Player = require('./player');
 /**
  * The state where all alive members are voting for the currently elected President and Chancellor
  */
@@ -30,6 +31,7 @@ class VoteForGovernment extends GameState{
         this.chancellor = this.parseUserName(this.getPlayerBySeat(game.chancellor));
         for(let player of game.alive()){
             this.votes[player.id] = null;
+            player.privateMessageHandler.handleEvent('cast_vote');
         }
         this.sendMessageToGroup({
             message: this.parseVoteMessage(),
@@ -72,6 +74,7 @@ class VoteForGovernment extends GameState{
             return 'You are not alive or part of the game. You can\'t vote!';
         let firstVote = this.votes[id] === null;
         this.votes[id] = Boolean(vote == 'yes');
+        this.emitEvent('player_voted', id);
         let allVoted = this.checkAllVoted();
         if(firstVote){
             if(this.message && !allVoted) //if this is undefined, we're already out of this state, prevent editing
@@ -104,7 +107,10 @@ class VoteForGovernment extends GameState{
         if(!elected)
             this.incrementElectionTracker();
         else{
-            this.game.electionTracker = 0; //reset! NO MORE ANARCHY!
+            if(this.game.electionTracker > 0){
+                this.game.electionTracker = 0; //reset! NO MORE ANARCHY!
+                this.emitEvent('election_tracker_reset');
+            }
             let chancellor = this.getPlayerBySeat(this.game.chancellor);
             if(this.game.fascistsCardsPlayed >= 3){
                 if(chancellor.role.isHitler)
@@ -117,7 +123,19 @@ class VoteForGovernment extends GameState{
             else
                 this.game.setState(new LegislativeStatePresident());
         }
+        this.emitEvent('vote_result', {yes: yesCount, no: noCount, votes});
         return true;
+    }
+    /**
+     * @param {Player} player 
+     */
+    onReconnect(player){
+        if(this.votes[player.id] === null)
+            player.privateMessageHandler.handleEvent('cast_vote');
+        for(let playerId in this.votes)
+            if(this.votes[playerId] !== null)
+                player.privateMessageHandler.handleEvent('player_voted', playerId);
+        
     }
 }
 module.exports = VoteForGovernment;

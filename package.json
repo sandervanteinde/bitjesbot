@@ -8,6 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "guid": "0.0.12",
     "mime-types": "^2.1.17",
     "moment": "^2.19.4",
     "moment-timezone": "^0.5.14",

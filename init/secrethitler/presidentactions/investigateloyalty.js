@@ -1,4 +1,5 @@
 const PresidentAction = require('./presidentaction');
+const PrivateMessage = require('../privateMessage');
 class InvestigateLoyalty extends PresidentAction{
     getDescription(){
         return 'The president is allowed to investigate someone\'s allegiance';
@@ -11,8 +12,8 @@ class InvestigateLoyalty extends PresidentAction{
         this.target = undefined;
         this.victims = Array.from(this.game.alive(p => p.id != this.president.id));
         let msg = this.getMessage();
-        msg.callback = (msg) => this.message = msg.result.message_id;
-        this.sendMessageToUser(this.president, msg);
+        let callback = (msg) => this.message = msg.result.message_id;
+        this.sendMessageToUser(this.president, new PrivateMessage('investigate_loyalty', msg.message, null, callback, msg.keyboard));
     }
     getMessage(){
         let keyboard = this.getKeyboardForPlayers(this.victims, 'investigate', p => this.parseUserName(p));
@@ -41,7 +42,7 @@ class InvestigateLoyalty extends PresidentAction{
             if(this.message)
                 this.editPrivateMessage(this.president, this.message, msg.message, msg);
             else
-                this.sendMessageToUser(this.president, msg);
+                this.sendMessageToUser(this.president, new PrivateMessage('investigate_loyalty', msg.message, null, callback, msg.keyboard));
 
         }else if(name == 'confirm-investigate'){
             let target = this.victims[this.target];
@@ -49,7 +50,7 @@ class InvestigateLoyalty extends PresidentAction{
             if(this.message)
                 this.editPrivateMessage(this.president, this.message, message);
             else
-                this.sendMessageToUser(this.president, {message})
+                this.sendMessageToUser(this.president, new PrivateMessage('player_loyalty', message, target.role.faction));
             this.sendMessageToGroup({message: `${this.parseUserName(this.president)} has investigated ${this.parseUserName(target)}`});
             this.switchToNextPresidentState();
             return message;
@@ -61,6 +62,11 @@ class InvestigateLoyalty extends PresidentAction{
      */
     getAnnouncementMessage(playerName){
         return `${playerName} is investigating someone's allegiance!`;
+    }
+    onReconnect(player){
+        if(player.id != this.president.id) return;
+        let msg = this.getMessage();
+        this.sendMessageToUser(this.president, new PrivateMessage('investigate_loyalty', msg.message, null, null, msg.keyboard));
     }
 }
 module.exports = InvestigateLoyalty;

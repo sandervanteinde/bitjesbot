@@ -5,6 +5,7 @@ const GameRegistry = require('./secrethitler/gameregistry');
 const Player = require('./secrethitler/player');
 const WebSocketMessageHandler = require('./secrethitler/privateMessageHandlers/websocketMessageHandler');
 const ws = require('../utils/web/websocket');
+const guid = require('guid');
 
 class SecretHitler{
     constructor(){
@@ -19,7 +20,7 @@ class SecretHitler{
 
         bot.registerPlainTextMessageHandler(msg => this.handlePlainTextMessage(msg));
 
-        ws.registerCallback('secret-hitler', (conn, gameId) => this.onWebsocketJoined(conn, gameId));
+        ws.registerCallback('secret-hitler', (conn, {gameId, reconnect}) => this.onWebsocketJoined(conn, gameId, reconnect));
         ws.registerCallback('sh_web_message', (conn, obj) => this.onWebMessage(conn, obj));
         ws.registerCallback('sh_request_join', (conn, playerName) => this.onWebRequestJoin(conn, playerName));
         ws.registerCallback('sh_mimic_telegram', (conn, params) => this.onMimicTelegram(conn, params));
@@ -50,6 +51,9 @@ class SecretHitler{
             return 'Game does not exist!';
         if(!game.state.joinPlayer)
             return `The game does not allow players to join right now`;
+        let playerGuid = guid.create().value;
+        game.addReconnectId(playerGuid, name);
+        ws.send(connection, 'sh_reconnect_id', playerGuid);
         return game.state.joinPlayer({id: name, first_name: name}, new WebSocketMessageHandler(connection));
     }
     onWebMessage(connection, {from, message, game}){
@@ -57,7 +61,7 @@ class SecretHitler{
         theGame.state.sendMessageToGroup( {message: `${from} said:\n${message}`, emitEvent: false});
         theGame.eventEmitter.emit('message', {text: message, from: {id: from, first_name: from}});
     }
-    onWebsocketJoined(connection, gameId){
+    onWebsocketJoined(connection, gameId, reconnect){
         let game = GameRegistry.getGame(gameId);
         if(!game) return;
         ws.send(connection, 'sh_init_state', game.getWebsocketState());
@@ -65,6 +69,12 @@ class SecretHitler{
         callback = (ev, ...params) => ws.send(connection, `sh_${ev}`, ...params);
         game.eventEmitter.on('*', callback);
         connection.on('close', () => game.eventEmitter.removeListener('*', callback));
+
+        if(!reconnect) return;
+        let playerId = game.getPlayerIdForReconnectGUID(reconnect);
+        if(!playerId) return;
+        game.players[playerId].privateMessageHandler = new WebSocketMessageHandler(connection); //set this players handler to this one instead
+        game.reconnect(playerId);
     }
     /**
      * 

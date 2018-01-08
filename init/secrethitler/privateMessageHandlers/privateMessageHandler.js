@@ -17,5 +17,8 @@ class PrivateMessageHandler{
     editMessage(msgId, message){
 
     }
+    handleEvent(evName, ...params){
+        
+    }
 }
 module.exports = PrivateMessageHandler;

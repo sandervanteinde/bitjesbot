@@ -42,5 +42,13 @@ class Player{
          */
         this.privateMessageHandler = messageHandler;
     }
+    toJSON(){
+        let obj = {};
+        for(let field in this){
+            if(field == 'privateMessageHandler' || field == 'role') continue;
+            obj[field] = this[field];
+        }
+        return obj;
+    }
 }
 module.exports = Player;

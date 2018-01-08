@@ -147,6 +147,7 @@ class ChancellorPickCardDialog extends Dialog{
         for(let i = 0; i < this.cards.length; i++){
             let card = this.cards[i];
             let button = this.button(card.faction, ev => this.pickCard(i));
+            button.classList.add(card.faction);
             this.buttons.push(button);
             this.content.push(button);
         }
@@ -175,13 +176,16 @@ class PresidentPickCardDialog extends Dialog{
         super();
         this.title = 'Pick the cards you want to pass to the chancellor';
         this.cards = cards;
+        /**
+         * @type {HTMLButtonElement[]}
+         */
         this.buttons = [];
         this.selectCount = 0;
-        console.log(cards);
         for(let i = 0; i < cards.length; i++){
             let card = cards[i].card;
             card.selected = false;
             let button = this.button(card.faction, () => this.selectCard(i));
+            button.classList.add(card.faction);
             this.buttons.push(button);
             this.content.push(button);
         }
@@ -200,34 +204,62 @@ class PresidentPickCardDialog extends Dialog{
     }
     selectCard(index){
         let card = this.cards[index].card;
+        let button = this.buttons[index];
         card.selected = !card.selected;
-        if(card.selected)
+        if(card.selected){
+            button.classList.add('selected');
             this.selectCount++;
-        else
+        }
+        else{
+            button.classList.remove('selected');
             this.selectCount--;
+        }
         if(this.selectCount == 2)
             this.confirm.removeAttribute('disabled');
         else
             this.confirm.setAttribute('disabled', true);
     }
 }
-class PickChancellorDialog extends Dialog{
-    constructor(callback){
+class PickPlayerDialog extends Dialog{
+    /**
+     * @param {function(number):boolean} validatorFunc 
+     * @param {function} callback 
+     */
+    constructor(validatorFunc, callback){
         super();
-        this.title = 'Pick your chancellor';
         for(let seat = 0; seat < game.turnOrder.length; seat++)
-            if(this.isEligibleForChancellor(seat)){
+            if(game.players[game.turnOrder[seat]].alive && validatorFunc(seat)){
                 let player = game.players[game.turnOrder[seat]];
                 this.content.push(this.button(playerName(player), () =>{ 
-                    callback(seat);
+                    if(callback) callback(seat);
                     this.close();
                 }));
             }
     }
-    isEligibleForChancellor(seat){
-        return seat != game.president && 
-        (seat != game.previousPresident || game.alivePlayers <= 5) &&
-        seat != game.previousChancellor &&
-        game.players[game.turnOrder[seat]].alive;
+}
+class PickChancellorDialog extends PickPlayerDialog{
+    constructor(callback){
+        super(seat => seat != game.president && 
+            (seat != game.previousPresident || game.alivePlayers <= 5) &&
+            seat != game.previousChancellor, callback);
+        this.title = 'Pick your chancellor';
+    }
+}
+class ShootPlayerDialog extends PickPlayerDialog{
+    constructor(callback){
+        super(seat => seat != game.president, callback);
+        this.title = 'Pick who you would like to shoot';
+    }
+}
+class SpecialElectionDialog extends PickPlayerDialog{
+    constructor(callback){
+        super(seat => seat != game.president, callback);
+        this.title = 'Pick who should be the next president';
+    }
+}
+class InvestigateLoyaltyDialog extends PickPlayerDialog{
+    constructor(callback){
+        super(seat => seat != game.president, callback);
+        this.title = 'Whose loyalty would you like to investigate?';
     }
 }

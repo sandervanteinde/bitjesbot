@@ -89,5 +89,10 @@ class LegislativeStatePresident extends GameState{
     onEndState(){
         this.sendMessageToGroup({message: `${this.parseUserName(this.president)} has discarded a card and given 2 cards to ${this.parseUserName(this.getPlayerBySeat(this.game.chancellor))}`});
     }
+    onReconnect(player){
+        if(this.president.id != player.id) return;
+        let msg = this.getPickACardMessage();
+        this.sendMessageToUser(this.president, new PrivateMessage('pick_card_president', msg.message, this.cards, (result) => this.message = result.result.message_id, msg.keyboard));
+    }
 }
 module.exports = LegislativeStatePresident;

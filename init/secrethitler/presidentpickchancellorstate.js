@@ -2,6 +2,7 @@ const GameState = require('./gamestate');
 const SecretHitlerGame = require('./secrethitlergame');
 const keyboard = require('../../utils/keyboard');
 const VoteForGovernment = require('./voteforgovernment');
+const Player = require('./player');
 /**
  * The state responsible for handling the president picking the Chancellor
  */
@@ -76,6 +77,13 @@ class PresidentPickChancellorState extends GameState{
             let chancellor = this.getPlayerBySeat(game.chancellor);
             this.editGroupMessage(this.pick_message, `${this.parseUserName(president)} has chosen ${this.parseUserName(chancellor)} as his/her chancellor`);
         }
+    }
+    /**
+     * @param {Player} player 
+     */
+    onReconnect(player){
+        if(this.game.president == player.seat)
+            player.privateMessageHandler.handleEvent('new_president', this.newPresidentSeatId);
     }
 }
 module.exports = PresidentPickChancellorState;

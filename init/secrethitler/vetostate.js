@@ -44,5 +44,15 @@ class VetoState extends GameState{
             this.onEndState();
         }
     }
+    onReconnect(player){
+        if(this.president.id != player.id) return;
+        this.sendMessageToUser(this.president, new PrivateMessage('veto_requested', 
+            'The chancellor requested a VETO. Do you accept?',
+            null,
+            undefined,
+            [[this.getButton('Ja!', 'veto-reply', 'yes'), this.getButton('Nein!', 'veto-reply', 'no')]]
+        ));
+
+    }
 }
 module.exports = VetoState;

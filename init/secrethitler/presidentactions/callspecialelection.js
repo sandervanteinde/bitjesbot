@@ -59,5 +59,11 @@ class CallSpecialElection extends PresidentAction{
         }else
             return super.handleInput(game, msg, name);
     }
+    onReconnect(player){
+        if(player.id == this.president.id){
+            let msg = this.getMessage();
+            this.sendMessageToUser(this.president, new PrivateMessage('special_election', msg.message, null, msg.callback, msg.keyboard));
+        }
+    }
 }
 module.exports = CallSpecialElection;

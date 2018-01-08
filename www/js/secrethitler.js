@@ -7,7 +7,7 @@ let joinBtn = document.querySelector('#joinbutton');
 let gameId = getParameterByName('gameid');
 
 onWebSocket(() => {
-    sendMessage('secret-hitler', gameId);
+    sendMessage('secret-hitler', {gameId, reconnect: localStorage.sh_reconnect});
     addHandler('sh_init_state', obj => {
         game = obj;
         for(let player in game.players)
@@ -39,6 +39,8 @@ onWebSocket(() => {
     });
     addHandler('sh_president_draw_policy', () => game.drawDeck -= 3);
     addHandler('sh_president_discard_card', () => game.discardDeck++);
+    addHandler('sh_reconnect_id', guid => localStorage.sh_reconnect = guid);
+    addHandler('sh_election_tracker_increment', () => game.electionTracker++);
     addHandler('sh_chancellor_plays_card', card => {
         game.discardDeck++;
         if(card.faction == 'Liberal')

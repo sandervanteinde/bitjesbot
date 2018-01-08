@@ -52,6 +52,7 @@ class Execution extends PresidentAction{
             if(this.message)
                 this.editPrivateMessage(this.president, this.message, privMsg);
             this.sendMessageToGroup({message: `${this.parseUserName(this.president)} has shot ${this.parseUserName(target)}`});
+            this.emitEvent('player_shot', target.seat);
             if(target.role.isHitler)
                 this.game.setState(new WinState(Faction.Liberal, 'Hitler was shot!'));
             else
@@ -69,6 +70,11 @@ class Execution extends PresidentAction{
             }
         }else
             super.handleInput(game, msg, name, ...params);
+    }
+    onReconnect(player){
+        if(this.president.id != player.id) return;
+        let msg = this.getMessage();
+        this.sendMessageToUser(this.president, new PrivateMessage('shoot_player', msg.message, null, (msg) => this.message = msg.result.message_id, msg.keyboard));
     }
 }
 module.exports = Execution;

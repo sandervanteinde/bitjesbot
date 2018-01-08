@@ -118,10 +118,16 @@ let enableChat;
             if(player.id == name){
                 joinBtn.remove();
                 setLocalPlayer(player);
+                localStorage.sh_player = player.id;
             }
         });
-        
         addHandler('sh_message', addChatMessage);
         addHandler('sh_system_message', addSystemMessage);
+        addHandler('sh_private_message', ev => {
+            if(ev.identifier != 'reconnect_info') return;
+            joinBtn.remove();
+            Materialize.toast(`You rejoined as ${ev.data.playerId}`, 10000);
+            name = ev.data.playerId;
+        });
     });
 })();

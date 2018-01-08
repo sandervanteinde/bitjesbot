@@ -10,6 +10,7 @@ const Player = require('./player');
 const PolicyCard = require('./policycard');
 const PresidentAction = require('./presidentactions/presidentaction');
 const EventEmitter = require('events');
+const PrivateMessage = require('./privateMessage');
 class SecretHitlerEventEmitter extends EventEmitter{
     constructor(){
         super();
@@ -115,6 +116,10 @@ class SecretHitlerGame{
          * @type {number} seatId of the president
          */
         this.specialElectionPresident = undefined;
+        /**
+         * @type {Object.<string, string>}
+         */
+        this.reconnectIds = {};
         this.eventEmitter = new SecretHitlerEventEmitter();
         this.setState(new JoinGameState());
     }
@@ -149,15 +154,9 @@ class SecretHitlerGame{
         }
         let playerInfo = {};
         for(let playerId in this.players){
-            let player = this.players[playerId];
-            let copy = {};
-            for(let key in player){
-                if(key == 'role' || key == 'privateMessageHandler') continue;
-                copy[key] = player[key];
-            }
-            if(this.host.id == player.id)
-                obj.host = copy;
-            playerInfo[playerId] = copy;
+            playerInfo[playerId] = this.players[playerId].toJSON();
+            if(this.host.id == playerId)
+                obj.host = playerInfo[playerId];
         }
         obj.players = playerInfo;
         obj.state = this.state.constructor.name;
@@ -178,6 +177,28 @@ class SecretHitlerGame{
         if(this.state)
             this.state.onStartState(this);
         state.emitEvent('state_changed', {old: oldState && oldState.constructor.name, new: state.constructor.name});
+    }
+    addReconnectId(guid, playerId){
+        this.reconnectIds[guid] = playerId;
+    }
+    getPlayerIdForReconnectGUID(guid){
+        return this.reconnectIds[guid];
+    }
+    reconnect(playerId){
+        let player = this.players[playerId];
+        let obj = {playerId};
+        if(!(this.state instanceof JoinGameState)){
+            obj.roles = [{id: playerId, role: player.role.isHitler && 'Hitler' || player.role.faction}];
+            if(player.role.faction == 'Fascist' && (!player.role.isHitler || this.playerCount < 7)){
+                for(let otherPlayer in this.players)
+                    if(playerId != otherPlayer)
+                        obj.roles.push({id: otherPlayer, role: this.players[otherPlayer].role.isHitler && 'Hitler' || this.players[otherPlayer].role.faction});
+            }
+        }
+        this.state.sendMessageToUser(player, new PrivateMessage('reconnect_info', undefined, obj));
+        this.state.emitEvent('state_changed', {new: this.state.constructor.name});
+        this.state.onReconnect(player);
+
     }
     /**
      * @param {number} playerId 

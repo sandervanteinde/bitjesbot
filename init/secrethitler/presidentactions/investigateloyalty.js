@@ -63,5 +63,10 @@ class InvestigateLoyalty extends PresidentAction{
     getAnnouncementMessage(playerName){
         return `${playerName} is investigating someone's allegiance!`;
     }
+    onReconnect(player){
+        if(player.id != this.president.id) return;
+        let msg = this.getMessage();
+        this.sendMessageToUser(this.president, new PrivateMessage('investigate_loyalty', msg.message, null, null, msg.keyboard));
+    }
 }
 module.exports = InvestigateLoyalty;

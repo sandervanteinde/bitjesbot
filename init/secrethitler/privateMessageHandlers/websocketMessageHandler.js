@@ -26,5 +26,8 @@ class WebSocketMessageHandler extends PrivateMessageHandler{
     editMessage(msgId, message){
 
     }
+    handleEvent(event, ...params){
+        ws.send(this.websocket, `sh_${event}`, ...params);
+    }
 }
 module.exports = WebSocketMessageHandler;

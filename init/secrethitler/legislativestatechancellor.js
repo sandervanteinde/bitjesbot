@@ -91,5 +91,10 @@ class LegislativeStateChancellor extends GameState{
             this.editPrivateMessage(this.chancellor, this.message, 'The veto was allowed!');
         this.emitEvent('veto_allowed');
     }
+    onReconnect(player){
+        if(this.chancellor.id != player.id) return;
+        let msg = this.getMessage();
+        this.sendMessageToUser(this.chancellor, new PrivateMessage('pick_card_chancellor', msg.message, this.cards, (msg) => this.message = msg.result.message_id, msg.keyboard));
+    }
 }
 module.exports = LegislativeStateChancellor;

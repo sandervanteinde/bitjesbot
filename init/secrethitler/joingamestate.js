@@ -100,7 +100,7 @@ class JoinGameState extends GameState {
         players[player.id] = new Player(messageHandler, player);
         console.log('joining player', this.parseUserName(player));
         this.game.playerCount++;
-        this.emitEvent('player_joined', player);
+        this.emitEvent('player_joined', players[player.id].toJSON());
     }
     /**
      * @param {*} player 

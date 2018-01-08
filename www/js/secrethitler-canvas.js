@@ -9,6 +9,9 @@ let setLocalPlayer;
 let getImage = id => {}
 (() => {
     const oneSixtieth = 1000 / 60; //the amount of ms 1 frame has
+    const electionTrackerLocations = [
+        380, 445, 510, 575
+    ];
     let _spriteId = 0;
     class Sprite extends PIXI.Sprite{
 
@@ -31,10 +34,10 @@ let getImage = id => {}
          * @param {Function[]} queue 
          * @param {number} delay 
          */
-        animate(object, toX, toY, speed = undefined, queue = [], delay = 0){
+        animate(object, toX, toY, speed = undefined, queue = [], delay = 0, callback = undefined){
             let func = this.animatingObjects[object.spriteId];
             if(func){ //an existing animation is happening on this object, remove it
-                func.queue.push({object, toX, toY, speed});
+                func.queue.push({object, toX, toY, speed, callback});
                 return;
             }
             let startX = object.x;
@@ -62,8 +65,9 @@ let getImage = id => {}
                     if(obj.queue.length > 0)
                     {
                         let [item, ...newQueue] = obj.queue;
-                        this.animate(item.object, item.toX, item.toY, item.speed, newQueue);
+                        this.animate(item.object, item.toX, item.toY, item.speed, newQueue, item.callback);
                     }
+                    if(callback) callback();
                 }
             };
             obj.func = func;
@@ -165,8 +169,14 @@ let getImage = id => {}
             for(let i = 0; i < game.liberalCardsPlayed; i++)
                 this.initializePolicyCard(image['policy-liberal'], this.getLocationForLiberalPolicy(i + 1));
 
+            if(game.electionTracker > 0){
+                this.electionTracker.x = electionTrackerLocations[game.electionTracker];
+                this.electionTracker.currentPos = game.electionTracker;
+            }
+
             //enable canvas if not JoinGameState
             this.gameStateChanged(game.state);
+            
             //state specific init
 
             switch(game.state){
@@ -204,7 +214,7 @@ let getImage = id => {}
             if(this.localPlayer){
                 switch(state){
                     case 'VoteForGovernment':
-                        new VoteDialog(result => this.sendPlayerVote(result), this.playerViews[game.president].player, this.playerViews[game.chancellor].player).create();
+                        
                         break;
                     case 'PresidentPickChancellorState':
                         if(this.playerViews[game.president].player.id == this.localPlayer.id)
@@ -243,7 +253,15 @@ let getImage = id => {}
             picSprite.scale.set(0.2372);
             picSprite.anchor.set(0, 1);
             picSprite.y = -32;
+            if(!player.alive)
+                picSprite.alpha = 0.25;
             container.addChild(picSprite);
+
+            let deathSprite = new Sprite(image.skull);
+            deathSprite.x = 10;
+            deathSprite.y = -185;
+            deathSprite.visible = !player.alive;
+            container.addChild(deathSprite);
             playerContainer.addChild(container);
 
             let yesCard = new Sprite(image['ballot-yes']);
@@ -263,9 +281,14 @@ let getImage = id => {}
                 plagueCount: 0,
                 yesCard,
                 noCard,
-                voteCard
+                voteCard,
+                death: deathSprite
             });
             this.verifyFascistBoard();
+        }
+        setPlayerDead(seat){
+            this.playerViews[seat].death.visible = true;
+            this.playerViews[seat].picture.alpha = 0.25;
         }
         verifyFascistBoard(){
             let count = this.playerViews.length;
@@ -373,6 +396,15 @@ let getImage = id => {}
                 app.stage.addChild(sprite);
                 this.plagues[plagues[i]] = sprite;
             }
+
+            let electionTracker = new Sprite(image.circle);
+            electionTracker.scale.set(0.33);
+            electionTracker.x = electionTrackerLocations[0];
+            electionTracker.y = 190;
+            electionTracker.currentPos = 0;
+            this.electionTracker = electionTracker;
+            app.stage.addChild(electionTracker);
+            console.log(this);
         }
         setPlagueInitialPosition(){
             let plagues = ['president', 'chancellor', 'previous-president', 'previous-chancellor'];
@@ -381,6 +413,15 @@ let getImage = id => {}
                 sprite.x = 1100;
                 sprite.y = 60 * i + 200;
             }
+        }
+        incrementElectionTracker(){
+            this.electionTracker.currentPos++;
+            this.animationManager.animate(this.electionTracker, electionTrackerLocations[this.electionTracker.currentPos], this.electionTracker.y, 750);
+        }
+        resetElectionTracker(){
+            this.electionTracker.currentPos = 0;
+            this.animationManager.animate(this.electionTracker, electionTrackerLocations[0], this.electionTracker.y, 750);
+            
         }
         findPlayerViewById(id){
             let views = this.playerViews;
@@ -492,6 +533,22 @@ let getImage = id => {}
                 case 'sh_private_message':
                     this.handlePrivateMessage(obj);
                     break;
+                case 'sh_cast_vote':
+                    new VoteDialog(result => this.sendPlayerVote(result), this.playerViews[game.president].player, this.playerViews[game.chancellor].player).create();
+                    break;
+                case 'sh_player_shot':
+                    this.setPlayerDead(obj);
+                    break;
+                case 'sh_election_tracker_increment':
+                    this.incrementElectionTracker();
+                    break;
+                case 'sh_election_tracker_reset':
+                    this.resetElectionTracker();
+                    break;
+                case 'sh_country_plays':
+                    let [countryCard] = this.drawCards.splice(this.drawCards.length - 1, 1);
+                    this.sendCardToBoard(countryCard, obj);
+                    break;
             }
         }
         handlePrivateMessage({identifier, data, message, keyboard}){
@@ -513,8 +570,34 @@ let getImage = id => {}
                         this.mimicMessage('confirm-pick-card');
                     }, data).create();
                     break;
+                case 'reconnect_info':
+                    let playerView = this.findPlayerViewById(data.playerId);
+                    this.setLocalPlayer(playerView.player);
+                    if(data.roles)
+                        for(let role of data.roles)
+                            this.revealRole(role.id, role.role);
+                    break;
+                case 'special_election':
+                    new SpecialElectionDialog(seat => {
+                        this.mimicMessage('make-president', seat);
+                        this.mimicMessage('confirm-make-president');
+                    }).create();
+                    break;
+                case 'shoot_player':
+                    new ShootPlayerDialog(seat => {
+                        this.mimicMessage('shoot', seat);
+                        this.mimicMessage('confirm-shoot');
+                    }).create();
+                    break;
+                case 'investigate_loyalty':
+                    new InvestigateLoyaltyDialog(seat => {
+                        this.mimicMessage('investigate', seat);
+                        this.mimicMessage('confirm-investigate');
+                    }).create();
+                    break;
             }
-            Materialize.toast(message.replace(/\n/g, '<br>'), 5000);
+            if(message)
+                Materialize.toast(message.replace(/\n/g, '<br>'), 5000);
         }
         revealRole(playerId, role){
             let view = this.findPlayerViewById(playerId);
@@ -559,8 +642,7 @@ let getImage = id => {}
                 loc = this.getLocationForFascistPolicy(game.fascistsCardsPlayed);
                 texture = image['policy-fascist'];
             }
-            cardObj.texture = texture;
-            this.animationManager.animate(cardObj, loc.x, loc.y);
+            this.animationManager.animate(cardObj, loc.x, loc.y, undefined, undefined, undefined, () => cardObj.texture = texture);
             this.playedCards.push(cardObj);
         }
         setLocalPlayer(player){
@@ -582,6 +664,7 @@ let getImage = id => {}
         'ballot-no',
         'ballot-yes',
         'chancellor',
+        'circle',
         'discard-pile',
         'draw-pile',
         'fascist-board9+',
@@ -609,6 +692,7 @@ let getImage = id => {}
         'secret-role-liberal-4',
         'secret-role-liberal-5',
         'secret-role-liberal-6',
+        'skull'
     ];
 
     function loadImages(){

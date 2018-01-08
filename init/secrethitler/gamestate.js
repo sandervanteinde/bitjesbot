@@ -38,6 +38,12 @@ class GameState{
             this.game.eventEmitter.removeListener(callback.event, callback.func);
     }
     /**
+     * @param {Player} playerId 
+     */
+    onReconnect(player){
+
+    }
+    /**
      * 
      * @param {string} text 
      * @param {string} callbackName 
@@ -159,19 +165,22 @@ class GameState{
     }
     incrementElectionTracker(){
         let game = this.game;
-        if(++game.electionTracker >= 3){
+        ++game.electionTracker
+        this.emitEvent('election_tracker_increment');
+        if(game.electionTracker >= 3){
             game.electionTracker = 0;
             let [card] = this.drawPolicyCards(1);
             this.sendMessageToGroup({message: `The election tracker is at 3. The country will play a card!`});
+            this.emitEvent('country_plays', card);
             let EndOfLegislativeState = require('./endoflegislativestate'); //prevent circular dependency
             game.setState(new EndOfLegislativeState(card, false));
+            setTimeout(() => this.emitEvent('election_tracker_reset'), 2500);
         }else{
             this.sendMessageToGroup({message: `The election tracker advanced to ${game.electionTracker}.\nAt 3, the country will play a card!`});
             let newPresident = game.getNextPresident();
             let presidentState = require('./presidentpickchancellorstate');//prevent circular dependency
             this.game.setState(new presidentState(newPresident));
         }
-        this.emitEvent('election_tracker_increment');
     }
     /**
      * @param {string} eventName 

@@ -1,0 +1,29 @@
+#chat table{
+    overflow: hidden;
+    
+}
+.tabcontainer .tab{
+    border-top-left-radius: 13px;
+    border-top-right-radius: 13px;
+    display: inline-block;
+    font-size: 24px;
+    background-color: #FFD175;
+    padding: 0 10px;
+    cursor: pointer;
+}
+.tabcontainer > * {
+    transition: 400ms;
+}
+.tabcontainer .tab:hover{
+    background-color: #FFBE3D;
+}
+.tabcontainer > :not(.tab), .tab.active, .tab.active:hover{
+    background-color: #F7EBD4;
+}
+.tabcontainer > :not(.tab){
+    overflow: hidden;
+}
+.tabcontainer .inactive{
+    height: 0px;
+    overflow: hidden;
+}

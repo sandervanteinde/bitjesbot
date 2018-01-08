@@ -26,7 +26,7 @@ onWebSocket(() => {
         delete game.players[obj.id];
         removePlayerFromTable(obj);
     });
-    addHandler('sh_message', addChatMessage);
+    
     addHandler('sh_start_game', newGame => game = newGame);
     addHandler('sh_state_changed', states => game.state = states.new);
     addHandler('sh_new_president', seat => game.president = seat);

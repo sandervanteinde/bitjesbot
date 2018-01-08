@@ -70,8 +70,8 @@ class GameState{
         else{
             game.isMessageBeingSent = true;
             bot.sendMessage(options);
-            if(options.emitEvent)
-                this.emitEvent('message', {from: {username: config.botName}, text: options.message});
+            if(options.emitEvent !== false)
+                this.emitEvent('system_message', options.message);
         }
     }
     /**

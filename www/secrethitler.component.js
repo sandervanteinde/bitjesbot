@@ -11,10 +11,12 @@ class SecretHitlerComponent extends Component{
             'js/secrethitler-canvas.js',
             'js/secrethitler-playertable.js', 
             'js/secrethitler-chat.js',
-            'js/secrethitler.js'
+            'js/secrethitler.js',
+            'js/tabs.js'
         );
         this.styles.push(
-            'css/secrethitler.css'
+            'css/secrethitler.css',
+            'css/tabs.css'
         );
     }
     getTemplate(){

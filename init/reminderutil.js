@@ -35,6 +35,7 @@ class ReminderUtil{
         for(let val in this.dateIntervals) {
             keyboard.registerCallback(`remind_add_${val}`, (...params) => this.onButtonPushed(...params));
             keyboard.registerCallback(`remind_subtract_${val}`, (...params) => this.onButtonPushed(...params));
+            keyboard.registerCallback('remind_cancel', (...params) => this.onButtonPushed(...params))
         };
         keyboard.registerCallback('remind_ok', (...params) => this.onOk(...params));
         this.defaultKeyboard = [
@@ -43,6 +44,7 @@ class ReminderUtil{
             [keyboard.button('+1 hour', 'remind_add_hour'), keyboard.button('-1 hour', 'remind_subtract_hour')],
             [keyboard.button('+5 hours', 'remind_add_5hours'), keyboard.button('-5 hours', 'remind_subtract_5hours')],
             [keyboard.button('+1 day', 'remind_add_day'), keyboard.button('-1 day', 'remind_subtract_day')],
+            [keyboard.button('Cancel', 'remind_cancel')]
             /*[keyboard.button('+1 week', 'remind_add_week'), keyboard.button('-1 week', 'remind_subtract_week')],
             [keyboard.button('+1 month', 'remind_add_month'), keyboard.button('-1 month', 'remind_subtract_month')]*/
         ];
@@ -156,6 +158,12 @@ class ReminderUtil{
     onButtonPushed(msg){
         if(!msg.data){
             console.error('Something odd happened', msg);
+            return;
+        }
+        if(msg.data == 'remind_cancel'){
+            bot.answerCallbackQuery(msg.id, {callback: () => {
+                bot.editMessage(msg.message.chat.id, msg.message.message_id, 'Reminder cancelled');
+            }});
             return;
         }
         let [match, addOrSub, method] = msg.data.match(regex);

@@ -24,7 +24,7 @@ class RollUtils{
             }
             else{
                 let roll = Math.round(Math.random() * num + 0.5);
-                return bot.sendMessage({chatId: message.chat.id, message: `Roll a ${param}-sized dice:\nRolled: ${roll}`});
+                return bot.sendMessage({chatId: message.chat.id, message: `Roll a ${param}-sized dice:\nRolled: ${roll}`, replyId: message.message_id});
             }
         }
     }
@@ -35,15 +35,26 @@ class RollUtils{
     handleDndRoll(message, param){
         let amountOfDice = Number(param[1]);
         let diceSize = Number(param[2]);
-        let returnMessage ='';
+        let returnMessage;
         let totalRoll = 0;
-        for(let i = 0; i < amountOfDice; i++){
-            let roll = Math.round(Math.random() * diceSize + 0.5);
-            totalRoll += roll;
-            returnMessage = `${returnMessage}${i == 0 ? '' : '\n'}Roll ${i + 1}: ${roll}`;
+        if(amountOfDice > 20){
+            for(let i = 0; i < amountOfDice; i++)
+            {
+                let roll = Math.round(Math.random() * diceSize + 0.5);
+                totalRoll += roll;
+                returnMessage = `Total roll: ${totalRoll}`;
+            }
         }
-        returnMessage = `${returnMessage}\n\nTotal roll: ${totalRoll}`;
-        bot.sendMessage({chatId: message.chat.id, message: returnMessage});
+        else{
+            returnMessage = '';
+            for(let i = 0; i < amountOfDice; i++){
+                let roll = Math.round(Math.random() * diceSize + 0.5);
+                totalRoll += roll;
+                returnMessage = `${returnMessage}${i == 0 ? '' : '\n'}Roll ${i + 1}: ${roll}`;
+            }
+            returnMessage = `${returnMessage}\n\nTotal roll: ${totalRoll}`;
+        }
+        bot.sendMessage({chatId: message.chat.id, message: returnMessage, replyId: message.message_id});
     }
 }
 module.exports = new RollUtils();

@@ -37,6 +37,12 @@ class RollUtils{
         let diceSize = Number(param[2]);
         let returnMessage;
         let totalRoll = 0;
+        if(amountOfDice > 10000){
+            return bot.sendMessage({chatId: message.chat.id, message:'The maximum amount of dice are 10.000.', replyId: message.message_id});
+        }
+        if(diceSize > 10000){
+            return bot.sendMessage({chatId: message.chat.id, message:'The maximum amount dice size is 10.000.', replyId: message.message_id});
+        }
         if(amountOfDice > 20){
             for(let i = 0; i < amountOfDice; i++)
             {

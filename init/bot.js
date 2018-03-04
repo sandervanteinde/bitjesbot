@@ -20,7 +20,7 @@ let onPlainTextMessage = [];
  */
 function registerSlashCommand(command, help, callback, {groupOnly = false} = {}){
     if(slashCommands[command])
-    error('A command with the name ' + command + 'already exists!');
+    error(`A command with the name ${command} already exists!`);
     let obj = {help, callback, groupOnly};
     slashCommands[command] = obj;
     slashCommands[`${command}@${config.botName}`] = obj;

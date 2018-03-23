@@ -9,5 +9,6 @@ module.exports = {
     websiteDirectory: './www',
     webPort: 80,
     botName: null,
-    weatherSecret: 'YOUR_KEY'
+    weatherSecret: 'YOUR_KEY',
+    googleMapsKey: 'YOUR API KEY'
 }

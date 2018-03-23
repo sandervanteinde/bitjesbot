@@ -7,7 +7,6 @@ const regex = /remind_(add|subtract)_([a-z0-9]+)/;
 const db = require('../utils/db');
 const Reminder = require('../models/reminder');
 const log = require('../utils/log');
-const ws = require('../utils/web/websocket');
 const config = require('../config');
 const EventHandler = require('../utils/eventhandler');
 
@@ -100,15 +99,6 @@ class ReminderUtil{
             };
         });
         moment.tz.setDefault('Europe/Amsterdam');
-        ws.registerCallback('add-reminder', (conn, content, key) => {
-            if(!conn.id) return;
-            let mom = moment(content.date);
-            let split = content.time.split(':');
-            mom.add(split[0], 'hour');
-            mom.add(split[1], 'minute');
-            let reminder = new Reminder(content.text, mom, conn.id);
-            this.addReminder(reminder);
-        });
     }
     getId(msg){
         return `${msg.chat.id}_${msg.message_id}`;

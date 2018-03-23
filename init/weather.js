@@ -54,7 +54,10 @@ class Weather{
     handleWeatherCommand(message){
         let item = this.mapLocations[message.from.id];
         if(!item){
-            return bot.sendMessage({chatId: message.chat.id, message: `You haven't registered a location yet. Use /${LOCATION_COMMAND} [Your Location] to register your location.`});
+            return bot.sendMessage({
+                chatId: message.chat.id, 
+                message: `You haven't registered a location yet. Use /${LOCATION_COMMAND} [Your Location] to register your location.`, 
+            });
         }
         let {location, description} = item;
         
@@ -75,7 +78,12 @@ ${fahrenheitToCelcius(currently.temperature)} °C`;
      */
     registerWeatherLocation(message, slashCmd, ...cityName){
         if(!cityName || cityName.length == 0){
-            bot.sendMessage({chatId: message.chat.id, message: `Invalid format: Usage '/${LOCATION_COMMAND} [Your City Name]'`});
+            bot.sendMessage({
+                chatId: message.chat.id, 
+                message: `Please reply to this message the place you would like to register as your city.`,
+                forceReplyHandler: msg => this.registerWeatherLocation(msg, null, msg.text),
+                replyId: message.message_id
+            });
             return;
         }
         cityName = cityName.join(' ');

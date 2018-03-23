@@ -6,12 +6,17 @@ const keyboard = require('../utils/keyboard');
 const fs = require('fs');
 const log = require('../utils/log');
 const server = require('../utils/server');
+const Moment = require('moment');
 let slashCommands = {};
 
 let polling = false;
 let lastMessage = 0;
 let url = `bot${config.API_KEY}`;
 let onPlainTextMessage = undefined;
+/**
+ * @type {Object<number,Funtion>}
+ */
+let replyHandlers = {};
 
 /**
  * @param {string} command
@@ -25,7 +30,7 @@ function registerSlashCommand(command, help, callback, {groupOnly = false} = {})
     slashCommands[command] = obj;
     slashCommands[`${command}@${config.botName}`] = obj;
 }
-function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null, error}){
+function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null, error, forceReplyHandler}){
     /**
      * @type {TelegramSendMessage}
      */
@@ -39,6 +44,17 @@ function sendMessage({chatId, message, callback = null, keyboard = [], replyId =
         options.reply_markup = {inline_keyboard: keyboard};
     if(parse_mode)
         options.parse_mode = parse_mode;
+    if(forceReplyHandler){
+        let oldCallback = callback;
+        options.reply_markup = {force_reply: true, selective: true};
+        callback = (msg) => {
+            if(msg.ok){
+                replyHandlers[msg.result.message_id] = {chat: chatId, handler: forceReplyHandler, time: Moment()};
+            }
+            if(oldCallback)
+                oldCallback(msg);
+        }
+    }
     callApiMethod('sendMessage', options, callback, error);
 }
 
@@ -93,8 +109,24 @@ function sendUnknownCommand(msg){
 }
 /**
  * @param {TelegramMessage} msg 
+ * @returns {boolean}
+ */
+function handleReply(msg){
+    let entry = replyHandlers[msg.reply_to_message.message_id];
+    if(entry){
+        entry.handler(msg);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @param {TelegramMessage} msg 
  */
 function processTextMessage(msg){
+    if(msg.reply_to_message && handleReply(msg)){
+        return;
+    }
     if(msg.text[0] != '/'){
         if(onPlainTextMessage)
             onPlainTextMessage(msg);
@@ -226,8 +258,25 @@ function sendLocation(msgId, {lat, lng}, {callback, error, replyToMessage}){
         options.reply_to_message_id = replyToMessage;
     callApiMethod('sendLocation', options, callback, error);
 }
+
 registerSlashCommand('help', null, helpCallback);
 registerSlashCommand('about', 'About this bot', aboutCallback);
+
+loop.subscribe(() => {
+    /**
+     * @type {moment.Moment}
+     */
+    let now = new Moment();
+    for(let key in replyHandlers){
+        let entry = replyHandlers[key];
+        let duration = Moment.duration(now.diff(entry.time));
+        let hours = duration.asHours();
+        if(hours >= 1){
+            editMessage(entry.chat, key, 'This message expired.');
+            delete replyHandlers[key];
+        }
+    }
+});
 
 module.exports = {
     sendMessage,

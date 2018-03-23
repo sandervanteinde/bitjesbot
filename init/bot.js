@@ -11,7 +11,6 @@ let slashCommands = {};
 let polling = false;
 let lastMessage = 0;
 let url = `bot${config.API_KEY}`;
-let onPlainTextMessage = [];
 let onPlainTextMessage = undefined;
 
 /**

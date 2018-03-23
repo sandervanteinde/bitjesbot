@@ -219,7 +219,14 @@ else{
 function registerPlainTextMessageHandler(callback){
     onPlainTextMessage = callback;
 }
-registerSlashCommand('help', 'This command', helpCallback);
+
+function sendLocation(msgId, {lat, lng}, {callback, error, replyToMessage}){
+    let options = {chat_id: msgId, latitude: lat, longitude: lng};
+    if(replyToMessage)
+        options.reply_to_message_id = replyToMessage;
+    callApiMethod('sendLocation', options, callback, error);
+}
+registerSlashCommand('help', null, helpCallback);
 registerSlashCommand('about', 'About this bot', aboutCallback);
 
 module.exports = {
@@ -227,6 +234,7 @@ module.exports = {
     registerSlashCommand,
     answerCallbackQuery,
     editMessage,
-    registerPlainTextMessageHandler
+    registerPlainTextMessageHandler,
+    sendLocation
 };
 log.info('Bot started!');

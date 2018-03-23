@@ -8,5 +8,6 @@ module.exports = {
     enableWebsite: true,
     websiteDirectory: './www',
     webPort: 80,
-    botName: null
+    botName: null,
+    weatherSecret: 'YOUR_KEY'
 }

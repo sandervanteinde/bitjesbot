@@ -25,7 +25,12 @@ class Database {
             }
             //read the database
             fs.readFile(path, (err, data) => {
-                collection.items = JSON.parse(data);
+                try{
+                    collection.items = JSON.parse(data);
+                }catch (err){
+                    collection.items = [];
+                    collection.saveChanges();
+                }
                 callback(collection);
             });
         });

@@ -4,7 +4,7 @@ const bodyparser = require('../utils/bodyparser');
 let cache = undefined;
 class PickupLine{
     constructor(){
-        bot.registerSlashCommand('anwb', 'Retrieves a random pickup line.', (...args) => this.onAnwb(...args));
+        bot.registerSlashCommand('anwb', 'Dutch traffic information services', (...args) => this.onAnwb(...args));
     }
     /**
      * 
@@ -36,6 +36,7 @@ class PickupLine{
                    replyId: message.message_id,
                    chatId: message.chat.id,
                    message: `Er zijn geen files op de ${road}`,
+                   parse_mode: 'Markdown',
                 });
            }else{
                let jams = filtered[0].events.trafficJams;

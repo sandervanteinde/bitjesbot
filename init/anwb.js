@@ -35,7 +35,12 @@ class PickupLine {
         let matches = [];
         for (let road of roads) {
             let match = road.match(roadRegex);
-            if (match) matches.push(match[0].toUpperCase());
+            if (match){
+                let [matchedRoad] = match;
+                matchedRoad = matchedRoad.toUpperCase();
+                if(matches.indexOf(matchedRoad) == -1)
+                    matches.push(matchedRoad);
+            } 
         }
         if (matches.length == 0) {
             return bot.sendMessage({

@@ -46,7 +46,7 @@ class Task {
         now.add(-now.milliseconds(), 'milliseconds');
         let hour, min, day;
         switch (schedule.interval) {
-            case 'minute':
+            case 'min':
                 now.add(1, 'minute');
                 break;
             case 'hour':
@@ -143,7 +143,7 @@ class Scheduler {
             tasks.splice(0, 1);
             switch (task.schedule.interval) {
 
-                case 'minute': task.next.add(1, 'minute'); break;
+                case 'min': task.next.add(1, 'minute'); break;
                 case 'hour': task.next.add(1, 'hour'); break;
                 case 'day': task.next.add(1, 'day'); break;
                 case 'weekdays':
@@ -313,10 +313,10 @@ class Scheduler {
      */
     onManageItem(query, id){
         let item = schedules[query.from.id][id];
-        let buttons = [[
+        let buttons = [/*[
             keyboard.button('Edit description', 'schedule', 'edit-description', id),
             keyboard.button('Edit slash command', 'schedule', 'edit-slashcommand', id)
-        ],[
+        ],*/[
             keyboard.button('Delete', 'schedule', 'delete', id)
         ],[
             keyboard.button('Return', 'schedule', 'manage')
@@ -325,6 +325,34 @@ class Scheduler {
             keyboard: buttons,
             parse_mode: 'Markdown'
         });
+    }
+    /**
+     * @param {Schedule} schedule 
+     */
+    removeTaskForSchedule(schedule){
+        for(let i = 0; i < tasks.length; i++){
+            if(tasks[i].schedule == schedule){
+                tasks.splice(i, 1);
+                return;
+            }
+        }
+    }
+    /**
+     * 
+     * @param {TelegramInlineQuery} query 
+     * @param {string} id 
+     */
+    onDelete(query, id){
+        let entries = schedules[query.from.id];
+        if(!entries) return;
+        let [entry] = entries.splice(Number(id), 1);
+        this.db.delete(entry);
+        this.db.saveChanges();
+        if(entry.active){
+            this.removeTaskForSchedule(entry);
+        }
+        if(this.onButtonPressed(query, '', 'manage'))
+            this.onButtonPressed(query, '', 'main-menu');
     }
     /**
      * @param {TelegramInlineQuery} query 
@@ -352,6 +380,9 @@ class Scheduler {
                 return this.onNewInterval(query, ...args)
             case 'main-menu':
                 return this.onMainMenu(query);
+            case 'delete':
+                return this.onDelete(query, ...args);
+
         }
     }
 }

@@ -1,9 +1,10 @@
 const bot = require('./bot');
 const https = require('https');
 const bodyparser = require('../utils/bodyparser');
+const roadRegex = /([AN]\d+)/gi
 let cache = undefined;
-class PickupLine{
-    constructor(){
+class PickupLine {
+    constructor() {
         bot.registerSlashCommand('anwb', 'Dutch traffic information services', (...args) => this.onAnwb(...args));
     }
     /**
@@ -12,62 +13,84 @@ class PickupLine{
      * @param {string} slashCmd
      * @param {string[]} param
      */
-    onAnwb(message, slashCmd, ...param){
-        if(param.length == 0){
+    onAnwb(message, slashCmd, ...param) {
+        if (param.length == 0) {
             return bot.sendMessage({
                 chatId: message.chat.id,
                 message: 'Welke weg wil je de files van weten?',
                 replyId: message.message_id,
-                forceReplyHandler: (message) => this.sendAnwbReply(message, message.text),
+                forceReplyHandler: (message) => this.sendAnwbReply(message, message.text.split(' ')),
             });
         }
-        this.sendAnwbReply(message, param.join(' '));
+        this.sendAnwbReply(message, param);
     }
     /**
      * @param {TelegramMessage} message
-     * @param {string} road 
+     * @param {string[]} roads
      */
-    sendAnwbReply(message, road){
-        road = road.toUpperCase();
+    sendAnwbReply(message, roads) {
+        /**
+         * @type {string[]}
+         */
+        let matches = [];
+        for (let road of roads) {
+            let match = road.match(roadRegex);
+            if (match) matches.push(match[0].toUpperCase());
+        }
+        if (matches.length == 0) {
+            return bot.sendMessage({
+                replyId: message.message_id,
+                chatId: message.chat.id,
+                message: 'Er is geen valide weg opgegeven.\nValide wegen zijn A of N wegen, gevolgd door het nummer.'
+            });
+        }else if(matches.length > 5){
+            return bot.sendMessage({
+                replyId: message.message_id,
+                chatId: message.chat.id,
+                message: 'Het maximum aantal wegen dat je kan selecteren is 5.'
+            });
+        }
         this.doApiCall(entries => {
-           let filtered = entries.filter(e => e.road == road); 
-           if(filtered.length == 0 || filtered[0].events.trafficJams.length == 0){
-               bot.sendMessage({
-                   replyId: message.message_id,
-                   chatId: message.chat.id,
-                   message: `Er zijn geen files op de ${road}`,
-                   parse_mode: 'Markdown',
-                });
-           }else{
-               let jams = filtered[0].events.trafficJams;
-               let msg = `Er ${jams.length == 1 ? 'is' : 'zijn'} *${jams.length}* file${jams.length > 1 ? 's' : ''} gemeld op de ${road}`;
-               for(let i = 0; i < jams.length; i++){
-                   let jam = jams[i];
-                   msg += `\n\n- Van *${jam.from}* naar *${jam.to}* (*${Math.round(jam.distance / 1000)} KM* / *${Math.round(jam.delay / 60)} min.* vertraging)\n${jam.description}`;
-               }
-               bot.sendMessage({
-                   replyId: message.message_id,
-                   chatId: message.chat.id,
-                   message: msg,
-                   parse_mode: 'Markdown',
-               });
-           }
+            let msg = '';
+            for (let road of matches) {
+                let entry = entries[road];
+                if (!entry || entry.events.trafficJams.length == 0) {
+                    msg += `Er zijn geen files op de ${road}\n\n`;
+                } else {
+                    let jams = entry.events.trafficJams;
+                    msg += `Er ${jams.length == 1 ? 'is' : 'zijn'} *${jams.length}* file${jams.length > 1 ? 's' : ''} gemeld op de ${road}`;
+                    for (let i = 0; i < jams.length; i++) {
+                        let jam = jams[i];
+                        msg += `\n\n- Van *${jam.from}* naar *${jam.to}* (*${Math.round(jam.distance / 1000)} KM* / *${Math.round(jam.delay / 60)} min.* vertraging)\n${jam.description}`;
+                    }
+                    msg += '\n\n';
+                }
+            }
+            bot.sendMessage({
+                replyId: message.message_id,
+                chatId: message.chat.id,
+                message: msg,
+                parse_mode: 'Markdown',
+            });
         });
     }
     /**
      * 
-     * @param {function(AnwbRoadEntry[]):void} callback 
+     * @param {function(Object<string,AnwbRoadEntry>):void} callback 
      */
-    doApiCall(callback){
-        if(cache == null){
+    doApiCall(callback) {
+        if (cache == null) {
             https.get('https://www.anwb.nl/feeds/gethf', res => bodyparser.parseJson(res, (body) => {
-                cache = body;
-                callback(body.roadEntries);
+                cache = {};
+                for (let entry of body.roadEntries) {
+                    cache[entry.road] = entry;
+                }
+                callback(cache);
                 setTimeout(() => cache = null, 60000);
             }));
         }
         else
-            callback(cache.roadEntries);
+            callback(cache);
     }
 }
 

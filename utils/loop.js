@@ -16,8 +16,15 @@ class LoopHandler{
         this.running = true;
         this.intervalId = setInterval(() => {
             let subscriptions = this.subscriptions;
-            for(let i = 0; i < subscriptions.length; i++)
-                subscriptions[i]();
+            for(let i = 0; i < subscriptions.length; i++){
+                try{
+                    subscriptions[i]();
+                }catch(err){
+                    console.error('Error in loop!');
+                    console.error(err);
+                }
+
+            }
         }, interval);
     }
     stop(){

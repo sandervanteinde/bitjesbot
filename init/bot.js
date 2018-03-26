@@ -30,14 +30,14 @@ let replyHandlers = {};
  * @param {string} help
  * @param {function(TelegramMessage,string,string[]):void} callback 
  */
-function registerSlashCommand(command, help, callback, {groupOnly = false, privateOnly = false} = {}){
-    if(slashCommands[command])
-    error(`A command with the name ${command} already exists!`);
-    let obj = {help, callback, groupOnly, privateOnly};
+function registerSlashCommand(command, help, callback, { groupOnly = false, privateOnly = false } = {}) {
+    if (slashCommands[command])
+        error(`A command with the name ${command} already exists!`);
+    let obj = { help, callback, groupOnly, privateOnly };
     slashCommands[command] = obj;
     slashCommands[`${command}@${config.botName}`] = obj;
 }
-function sendMessage({chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null, error, forceReplyHandler}){
+function sendMessage({ chatId, message, callback = null, keyboard = [], replyId = null, parse_mode = null, error, forceReplyHandler }) {
     /**
      * @type {TelegramSendMessage}
      */
@@ -45,20 +45,20 @@ function sendMessage({chatId, message, callback = null, keyboard = [], replyId =
         chat_id: chatId,
         text: message
     };
-    if(replyId !== null)
+    if (replyId !== null)
         options.reply_to_message_id = replyId;
-    if(keyboard.length > 0)
-        options.reply_markup = {inline_keyboard: keyboard};
-    if(parse_mode)
+    if (keyboard.length > 0)
+        options.reply_markup = { inline_keyboard: keyboard };
+    if (parse_mode)
         options.parse_mode = parse_mode;
-    if(forceReplyHandler){
+    if (forceReplyHandler) {
         let oldCallback = callback;
-        options.reply_markup = {force_reply: true, selective: true};
+        options.reply_markup = { force_reply: true, selective: true };
         callback = (msg) => {
-            if(msg.ok){
-                replyHandlers[msg.result.message_id] = {chat: chatId, handler: forceReplyHandler, time: Moment()};
+            if (msg.ok) {
+                replyHandlers[msg.result.message_id] = { chat: chatId, handler: forceReplyHandler, time: Moment() };
             }
-            if(oldCallback)
+            if (oldCallback)
                 oldCallback(msg);
         }
     }
@@ -71,7 +71,7 @@ function sendMessage({chatId, message, callback = null, keyboard = [], replyId =
  * @param {function(TelegramResponse<*>)} callback 
  * @param {function(any)} error
  */
-function callApiMethod(method, body = null, callback, error){
+function callApiMethod(method, body = null, callback, error) {
     let postOptions = {
         host: 'api.telegram.org',
         path: `/${url}/${method}`,
@@ -82,21 +82,21 @@ function callApiMethod(method, body = null, callback, error){
         timeout: 5000
     };
     let request = https.request(postOptions, (res) => bodyparser.parseJson(res, responseBody => {
-        if(!responseBody.ok){
-            if(error)
+        if (!responseBody.ok) {
+            if (error)
                 error(responseBody);
             else
                 console.error('Unhandled wrongly parsed message!', responseBody);
         }
-        else if(callback)
+        else if (callback)
             callback(responseBody);
     }));
-    if(error)
+    if (error)
         request.on('error', error);
     else
         request.on('error', err => {
             polling = false;
-            if(err.code == 'ETIMEDOUT' && method == 'getUpdates')
+            if (err.code == 'ETIMEDOUT' && method == 'getUpdates')
                 return;//not important, this happens when polling
             console.error({
                 method,
@@ -104,23 +104,23 @@ function callApiMethod(method, body = null, callback, error){
                 inner: err,
             });
         });
-    if(body)
+    if (body)
         request.write(JSON.stringify(body));
     request.end();
 }
 /**
  * @param {TelegramMessage} msg 
  */
-function sendUnknownCommand(msg){
-    sendMessage({chatId: msg.chat.id, message: 'Unknown command. Type /help for commands!'});
+function sendUnknownCommand(msg) {
+    sendMessage({ chatId: msg.chat.id, message: 'Unknown command. Type /help for commands!' });
 }
 /**
  * @param {TelegramMessage} msg 
  * @returns {boolean}
  */
-function handleReply(msg){
+function handleReply(msg) {
     let entry = replyHandlers[msg.reply_to_message.message_id];
-    if(entry){
+    if (entry) {
         entry.handler(msg);
         return true;
     }
@@ -129,31 +129,31 @@ function handleReply(msg){
 /**
  * @param {TelegramMessage} msg 
  */
-function interpretSlashCommand(msg){
+function interpretSlashCommand(msg) {
     let [command, ...args] = msg.text.split(' ');
     command = command.substring(1).toLowerCase();
     let callback = slashCommands[command];
-    if(callback){
-        if(callback.groupOnly && msg.chat.type != 'group')
-            sendMessage({chatId: msg.chat.id, message: 'This command is only available to group chats.'});
-        else if(callback.privateOnly && msg.chat.type != 'private')
-            sendMessage({chatId: msg.chat.id, message: `This command is only available in [private chat](tg://user?id=${me.id}).`, parse_mode: 'Markdown'});
+    if (callback) {
+        if (callback.groupOnly && msg.chat.type != 'group')
+            sendMessage({ chatId: msg.chat.id, message: 'This command is only available to group chats.' });
+        else if (callback.privateOnly && msg.chat.type != 'private')
+            sendMessage({ chatId: msg.chat.id, message: `This command is only available in [private chat](tg://user?id=${me.id}).`, parse_mode: 'Markdown' });
         else
             callback.callback(msg, command, ...args);
-    }else
+    } else
         sendUnknownCommand(msg);
 }
 
 /**
  * @param {TelegramMessage} msg 
  */
-function processTextMessage(msg){
-    if(msg.reply_to_message && handleReply(msg)){
+function processTextMessage(msg) {
+    if (msg.reply_to_message && handleReply(msg)) {
         return;
     }
-    if(msg.text[0] != '/'){
+    if (msg.text[0] != '/') {
         let handler = onPlainTextMessage[msg.chat.id];
-        if(handler)
+        if (handler)
             handler(msg);
         return;
     }
@@ -162,40 +162,46 @@ function processTextMessage(msg){
 /**
  * @param {TelegramMessage} msg 
  */
-function processMessage(msg){
-    if(msg.text)
+function processMessage(msg) {
+    if (msg.text)
         processTextMessage(msg);
 }
 /**
  * 
  * @param {TelegramUpdate} update 
  */
-function onMessageReceived(update){
-    if(update.message)
-        processMessage(update.message);
-    else if(update.callback_query){
-        keyboard.handleCallback(update.callback_query);
-        if(!update.callback_query.answered)
-            answerCallbackQuery(update.callback_query.id);
+function onMessageReceived(update) {
+    try {
+        if (update.message)
+            processMessage(update.message);
+        else if (update.callback_query) {
+            keyboard.handleCallback(update.callback_query);
+            if (!update.callback_query.answered)
+                answerCallbackQuery(update.callback_query.id);
+        }
+        else
+            console.error("Unhandled message received", update);
+    } catch (err) {
+        console.error('Error in handling message!');
+        console.error(err);
+    } finally {
+        lastMessage = update.update_id;
     }
-    else
-        console.error("Unhandled message received", update);
-    lastMessage = update.update_id;
 }
-function deleteWebhook(){
+function deleteWebhook() {
     callApiMethod('deleteWebhook');
 }
-function pollMessage(){
-    if(polling) return;
+function pollMessage() {
+    if (polling) return;
     polling = true;
-    callApiMethod('getUpdates', {offset: lastMessage + 1}, body => {
-        if(!body.ok)
+    callApiMethod('getUpdates', { offset: lastMessage + 1 }, body => {
+        if (!body.ok)
             return;
         body.result.forEach(onMessageReceived);
         polling = false;
     });
 }
-function setWebhook(domain){
+function setWebhook(domain) {
     server.registerRoute(`/${config.API_KEY}`, (request) => {
         bodyparser.parseJson(request.request, body => {
             onMessageReceived(body);
@@ -204,25 +210,25 @@ function setWebhook(domain){
     });
     let webhookUrl = `https://${domain}/${config.API_KEY}`;
     log.debug(`Setting webhook to: ${webhookUrl}`);
-    callApiMethod('setWebhook', {url: webhookUrl});
+    callApiMethod('setWebhook', { url: webhookUrl });
 }
 /**
  * @param {TelegramMessage} msg 
  */
-function helpCallback(msg){
+function helpCallback(msg) {
     let commands = [];
-    for(let slashCommand in slashCommands){
-        if(slashCommand.indexOf('@') >= 0) continue;
+    for (let slashCommand in slashCommands) {
+        if (slashCommand.indexOf('@') >= 0) continue;
         let data = slashCommands[slashCommand];
-        if(data.groupOnly && msg.chat.type != 'group') continue;
-        if(slashCommands[slashCommand].help)
+        if (data.groupOnly && msg.chat.type != 'group') continue;
+        if (slashCommands[slashCommand].help)
             commands.push(`/${slashCommand} - ${slashCommands[slashCommand].help}`);
     }
     let sendMsg = `Available commands:\n\n${commands.join('\n')}`;
-    sendMessage({chatId: msg.chat.id, message: sendMsg});
+    sendMessage({ chatId: msg.chat.id, message: sendMsg });
 }
-function aboutCallback(msg){
-    sendMessage({chatId: msg.chat.id, message: 'This bot is made by Sander van \'t Einde.\nYou can view the source at https://www.github.com/sandervanteinde/bitjesbot'});
+function aboutCallback(msg) {
+    sendMessage({ chatId: msg.chat.id, message: 'This bot is made by Sander van \'t Einde.\nYou can view the source at https://www.github.com/sandervanteinde/bitjesbot' });
 }
 /**
  * 
@@ -230,26 +236,25 @@ function aboutCallback(msg){
  * @param {function} callback
  * @param {string} notification 
  */
-function answerCallbackQuery(id, {callback = null, notification = null} = {}){
+function answerCallbackQuery(id, { callback = null, notification = null } = {}) {
     let options = {
         callback_query_id: id
     };
-    if(notification)
-    {
+    if (notification) {
         options.show_alert = true;
         options.text = notification;
     }
     callApiMethod('answerCallbackQuery', options, callback);
 }
 
-function setForceReplyForMessage(options, callback, forceReplyHandler){
+function setForceReplyForMessage(options, callback, forceReplyHandler) {
     let oldCallback = callback;
-    options.reply_markup = {force_reply: true, selective: true};
+    options.reply_markup = { force_reply: true, selective: true };
     callback = (msg) => {
-        if(msg.ok){
-            replyHandlers[msg.result.message_id] = {chat: chatId, handler: forceReplyHandler, time: Moment()};
+        if (msg.ok) {
+            replyHandlers[msg.result.message_id] = { chat: chatId, handler: forceReplyHandler, time: Moment() };
         }
-        if(oldCallback)
+        if (oldCallback)
             oldCallback(msg);
     }
     return callback;
@@ -261,23 +266,23 @@ function setForceReplyForMessage(options, callback, forceReplyHandler){
  * @param {number} message_id 
  * @param {string} text 
  */
-function editMessage(chat_id, message_id, text, {keyboard = null, parse_mode = null} = {}){
-    let options = {chat_id, message_id, text};
-    if(keyboard !== null)
-        options.reply_markup = {inline_keyboard: keyboard};
-    if(parse_mode !== null)
+function editMessage(chat_id, message_id, text, { keyboard = null, parse_mode = null } = {}) {
+    let options = { chat_id, message_id, text };
+    if (keyboard !== null)
+        options.reply_markup = { inline_keyboard: keyboard };
+    if (parse_mode !== null)
         options.parse_mode = parse_mode;
     callApiMethod('editMessageText', options);
 }
 callApiMethod('getMe', {}, (test) => {
     me = test.result;
 });
-if(config.domain){
-    if(config.cert === null || config.key === null)
+if (config.domain) {
+    if (config.cert === null || config.key === null)
         throw "Webhooks require a certificate and key to run a server!";
     setWebhook(config.domain, config.key, config.cert, config);
 }
-else{
+else {
     deleteWebhook();
     loop.subscribe(pollMessage);
 }
@@ -286,13 +291,13 @@ else{
  * @param {number} userId 
  * @param {function(TelegramMessage):void} callback 
  */
-function registerPlainTextMessageHandler(userId, callback){
+function registerPlainTextMessageHandler(userId, callback) {
     onPlainTextMessage[userId] = callback;
 }
 
-function sendLocation(msgId, {lat, lng}, {callback, error, replyToMessage}){
-    let options = {chat_id: msgId, latitude: lat, longitude: lng};
-    if(replyToMessage)
+function sendLocation(msgId, { lat, lng }, { callback, error, replyToMessage }) {
+    let options = { chat_id: msgId, latitude: lat, longitude: lng };
+    if (replyToMessage)
         options.reply_to_message_id = replyToMessage;
     callApiMethod('sendLocation', options, callback, error);
 }
@@ -305,11 +310,11 @@ loop.subscribe(() => {
      * @type {moment.Moment}
      */
     let now = new Moment();
-    for(let key in replyHandlers){
+    for (let key in replyHandlers) {
         let entry = replyHandlers[key];
         let duration = Moment.duration(now.diff(entry.time));
         let hours = duration.asHours();
-        if(hours >= 1){
+        if (hours >= 1) {
             editMessage(entry.chat, key, 'This message expired.');
             delete replyHandlers[key];
         }

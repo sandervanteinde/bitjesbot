@@ -3,7 +3,7 @@ const https = require('https');
 const bodyparser = require('../utils/bodyparser');
 const roadRegex = /([AN]\d+)/gi
 let cache = undefined;
-class PickupLine {
+class Anwb {
     constructor() {
         bot.registerSlashCommand('anwb', 'Dutch traffic information services', (...args) => this.onAnwb(...args));
     }
@@ -99,4 +99,4 @@ class PickupLine {
     }
 }
 
-module.exports = new PickupLine();
+module.exports = new Anwb();

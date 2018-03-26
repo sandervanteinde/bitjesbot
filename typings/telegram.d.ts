@@ -341,6 +341,7 @@ declare class TelegramInlineQuery{
     public location : TelegramLocation;
     public query : string;
     public offset : string;
+    public message : TelegramMessage
 }
 declare class TelegramChosenInlineResult{
     public result_id : string;

@@ -8,11 +8,18 @@ const log = require('../utils/log');
 const server = require('../utils/server');
 const Moment = require('moment');
 let slashCommands = {};
+/**
+ * @type {TelegramUser}
+ */
+let me;
 
 let polling = false;
 let lastMessage = 0;
 let url = `bot${config.API_KEY}`;
-let onPlainTextMessage = undefined;
+/**
+ * @type {Object<number,Function>}
+ */
+let onPlainTextMessage = {};
 /**
  * @type {Object<number,Funtion>}
  */
@@ -23,10 +30,10 @@ let replyHandlers = {};
  * @param {string} help
  * @param {function(TelegramMessage,string,string[]):void} callback 
  */
-function registerSlashCommand(command, help, callback, {groupOnly = false} = {}){
+function registerSlashCommand(command, help, callback, {groupOnly = false, privateOnly = false} = {}){
     if(slashCommands[command])
     error(`A command with the name ${command} already exists!`);
-    let obj = {help, callback, groupOnly};
+    let obj = {help, callback, groupOnly, privateOnly};
     slashCommands[command] = obj;
     slashCommands[`${command}@${config.botName}`] = obj;
 }
@@ -119,6 +126,23 @@ function handleReply(msg){
     }
     return false;
 }
+/**
+ * @param {TelegramMessage} msg 
+ */
+function interpretSlashCommand(msg){
+    let [command, ...args] = msg.text.split(' ');
+    command = command.substring(1).toLowerCase();
+    let callback = slashCommands[command];
+    if(callback){
+        if(callback.groupOnly && msg.chat.type != 'group')
+            sendMessage({chatId: msg.chat.id, message: 'This command is only available to group chats.'});
+        else if(callback.privateOnly && msg.chat.type != 'private')
+            sendMessage({chatId: msg.chat.id, message: `This command is only available in [private chat](tg://user?id=${me.id}).`, parse_mode: 'Markdown'});
+        else
+            callback.callback(msg, command, ...args);
+    }else
+        sendUnknownCommand(msg);
+}
 
 /**
  * @param {TelegramMessage} msg 
@@ -128,20 +152,12 @@ function processTextMessage(msg){
         return;
     }
     if(msg.text[0] != '/'){
-        if(onPlainTextMessage)
-            onPlainTextMessage(msg);
+        let handler = onPlainTextMessage[msg.chat.id];
+        if(handler)
+            handler(msg);
         return;
     }
-    let [command, ...args] = msg.text.split(' ');
-    command = command.substring(1).toLowerCase();
-    let callback = slashCommands[command];
-    if(callback){
-        if(callback.groupOnly && msg.chat.type != 'group')
-            sendMessage({chatId: msg.chat.id, message: 'This command is only available to group chats.'});
-        else
-            callback.callback(msg, command, ...args);
-    }else
-        sendUnknownCommand(msg);
+    interpretSlashCommand(msg);
 }
 /**
  * @param {TelegramMessage} msg 
@@ -225,6 +241,20 @@ function answerCallbackQuery(id, {callback = null, notification = null} = {}){
     }
     callApiMethod('answerCallbackQuery', options, callback);
 }
+
+function setForceReplyForMessage(options, callback, forceReplyHandler){
+    let oldCallback = callback;
+    options.reply_markup = {force_reply: true, selective: true};
+    callback = (msg) => {
+        if(msg.ok){
+            replyHandlers[msg.result.message_id] = {chat: chatId, handler: forceReplyHandler, time: Moment()};
+        }
+        if(oldCallback)
+            oldCallback(msg);
+    }
+    return callback;
+}
+
 /**
  * 
  * @param {number} chat_id 
@@ -239,6 +269,9 @@ function editMessage(chat_id, message_id, text, {keyboard = null, parse_mode = n
         options.parse_mode = parse_mode;
     callApiMethod('editMessageText', options);
 }
+callApiMethod('getMe', {}, (test) => {
+    me = test.result;
+});
 if(config.domain){
     if(config.cert === null || config.key === null)
         throw "Webhooks require a certificate and key to run a server!";
@@ -248,8 +281,13 @@ else{
     deleteWebhook();
     loop.subscribe(pollMessage);
 }
-function registerPlainTextMessageHandler(callback){
-    onPlainTextMessage = callback;
+/**
+ * 
+ * @param {number} userId 
+ * @param {function(TelegramMessage):void} callback 
+ */
+function registerPlainTextMessageHandler(userId, callback){
+    onPlainTextMessage[userId] = callback;
 }
 
 function sendLocation(msgId, {lat, lng}, {callback, error, replyToMessage}){
@@ -277,6 +315,12 @@ loop.subscribe(() => {
         }
     }
 });
+/**
+ * @returns {TelegramUser}
+ */
+function getMe() {
+    return me;
+}
 
 module.exports = {
     sendMessage,
@@ -284,6 +328,8 @@ module.exports = {
     answerCallbackQuery,
     editMessage,
     registerPlainTextMessageHandler,
-    sendLocation
+    sendLocation,
+    getMe,
+    interpretSlashCommand
 };
 log.info('Bot started!');

@@ -12,9 +12,6 @@ class Iska{
                 this.broadcastTweet(body);
             });
         });
-        bot.registerSlashCommand('testiska', undefined, () => {
-            this.broadcastTweet({text: 'Hello World'});
-        })
     }
     broadcastTweet(body){
         for(let id of this.db.items){

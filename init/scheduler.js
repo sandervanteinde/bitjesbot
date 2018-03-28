@@ -386,4 +386,4 @@ class Scheduler {
         }
     }
 }
-module.exports = new Scheduler();
+module.exports = undefined;

@@ -12,9 +12,12 @@ class Iska{
                 this.broadcastTweet(body);
             });
         });
+        bot.registerSlashCommand('testiska', undefined, () => {
+            this.broadcastTweet({text: 'Hello World'});
+        })
     }
     broadcastTweet(body){
-        for(let id in this.db.items){
+        for(let id of this.db.items){
             bot.sendMessage({
                 chatId: id,
                 message: `ISKA heeft zojuist getweet:\n${body.text}`

@@ -1,6 +1,7 @@
 const bot = require('./bot');
 const db = require('../utils/db');
 const server = require('../utils/server');
+const bodyparser = require('../utils/bodyparser');
 class Iska{
     constructor(){
         bot.registerSlashCommand('iska', 'Enables ISKA twitter notifications', (msg) => this.onIskaMessage(msg));

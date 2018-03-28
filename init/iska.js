@@ -25,6 +25,14 @@ class Iska{
      * @param {TelegramMessage} msg 
      */
     onIskaMessage(msg){
+        if(msg.from.username.toLowerCase() == 'berwout'){
+            bot.sendMessage({
+                chatId: msg.chat.id,
+                message: '@Berwout was blocked from using this command',
+                replyId: msg.message_id
+            });
+            return;
+        }
         let items = this.db.items.filter(c => c.id == msg.chat.id);
         let exists = items.length == 1;
         if(exists){

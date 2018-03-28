@@ -14,9 +14,9 @@ class Iska{
         });
     }
     broadcastTweet(body){
-        for(let id of this.db.items){
+        for(let entry of this.db.items){
             bot.sendMessage({
-                chatId: id,
+                chatId: entry.id,
                 message: `ISKA heeft zojuist getweet:\n${body.text}`
             });
         }
@@ -25,11 +25,12 @@ class Iska{
      * @param {TelegramMessage} msg 
      */
     onIskaMessage(msg){
-        let exists = this.db.items.filter(c => msg.chat.id).length == 1;
+        let items = this.db.items.filter(c => c.id == msg.chat.id);
+        let exists = items.length == 1;
         if(exists){
-            this.db.delete(msg.chat.id);
+            this.db.delete({id: msg.chat.id});
         }else{
-            this.db.add(msg.chat.id)
+            this.db.add({id: msg.chat.id})
         };
         this.db.saveChanges();
         bot.sendMessage({

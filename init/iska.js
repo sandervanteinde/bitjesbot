@@ -8,10 +8,18 @@ class Iska{
         db.getCollection('iska', coll => this.db = coll);
         server.registerRoute('/36d6abd6-73a2-4c92-bcda-815ffb422ea3', (req) => {
             bodyparser.parseJson(req.request, body => {
-                console.log(body);
                 req.success();
+                this.broadcastTweet(body);
             });
         });
+    }
+    broadcastTweet(body){
+        for(let id in this.db.items){
+            bot.sendMessage({
+                chatId: id,
+                message: `ISKA heeft zojuist getweet:\n${body.text}`
+            });
+        }
     }
     /**
      * @param {TelegramMessage} msg 
@@ -23,6 +31,7 @@ class Iska{
         }else{
             this.db.add(msg.chat.id)
         };
+        this.db.saveChanges();
         bot.sendMessage({
             chatId: msg.chat.id,
             message: exists ? 'Removed you from the ISKA list.' : 'Added you to the ISKA list.',

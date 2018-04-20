@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "lib": ["es6"],
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true
+  },
+  "typeAcquisition": {
+    "enable": true,
+  },
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

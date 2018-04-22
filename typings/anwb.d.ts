@@ -17,6 +17,7 @@ export  class AnwbEvent{
     from: string;
     to: string;
     distance: number;
+    delay: number;
     toLoc: {lat: number,long: number};
     location: string;
     segStart: string;

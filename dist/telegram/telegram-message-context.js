@@ -6,6 +6,9 @@ class TelegramMessageContext {
         this.slashCommand = slashCommand;
         this.args = args;
     }
+    get hasArguments() {
+        return this.args != null && this.args.length > 0;
+    }
     get GroupChat() {
         return !this.PrivateChat;
     }

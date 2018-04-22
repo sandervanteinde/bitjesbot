@@ -193,11 +193,11 @@ export class TelegramInlineKeyboardMarkup {
 export class TelegramInlineKeyboardButton {
     public text: string;
     public callback_data: string;
-    public url: string;
-    public switch_inline_query: string;
-    public switch_inline_query_current_chat: string;
-    public callback_game: TelegramCallbackGame;
-    public pay: boolean;
+    public url?: string;
+    public switch_inline_query?: string;
+    public switch_inline_query_current_chat?: string;
+    public callback_game?: TelegramCallbackGame;
+    public pay?: boolean;
 }
 export class TelegramCallbackGame {
     //placeholder?
@@ -366,4 +366,20 @@ export class TelegramResponse<T>{
     public description: string;
     public error_code: number;
     public parameters: TelegramResponseParameters;
+}
+export class TelegramAnswerCallbackQuery {
+    public callback_query_id: string;
+    public text?: string;
+    public show_alert?: boolean;
+    public url?: string;
+    public cache_time?: number;
+}
+export class TelegramEditMessageText{
+    public chat_id?: number | string;
+    public message_id? : number;
+    public inline_message_id? : string;
+    public text: string;
+    public parse_mode? : 'Markdown' | 'HTML';
+    public disable_web_page_preview? : boolean;
+    public reply_markup?: TelegramInlineKeyboardMarkup;
 }

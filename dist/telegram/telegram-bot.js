@@ -5,21 +5,45 @@ const loop_1 = require("../utils/loop");
 const https_1 = require("https");
 const bodyparser_1 = require("../utils/bodyparser");
 const telegram_message_context_1 = require("./telegram-message-context");
-const telegram_message_output_1 = require("./telegram-message-output");
+const telegram_message_output_1 = require("./outputs/telegram-message-output");
+const moment = require("moment");
+const keyboard_handler_1 = require("./keyboard/keyboard-handler");
 class TelegramBot {
     constructor() {
         this.slashCommands = {};
         this.polling = false;
         this.lastMessage = 0;
         this.url = `bot${config_1.default.API_KEY}`;
-        this.onPlainTextMessage = {};
         this.replyHandlers = {};
+        this.keyboardHandler = new keyboard_handler_1.KeyboardHandler(this);
+        this.subscribeReplyHandlerDeletion();
+    }
+    subscribeReplyHandlerDeletion(timeInMinutes = 60) {
+        loop_1.default.subscribe(() => {
+            let now = moment();
+            for (let key in this.replyHandlers) {
+                let entry = this.replyHandlers[key];
+                let duration = moment.duration(now.diff(entry.time));
+                let minutes = duration.asMinutes();
+                if (minutes >= timeInMinutes) {
+                    this.callApiMethod('editMessageText', {
+                        chat_id: entry.chat,
+                        message_id: key,
+                        text: 'This message has expired'
+                    });
+                    delete this.replyHandlers[key];
+                }
+            }
+        });
     }
     registerSlashCommand(command, helpMessage, callback, { groupOnly, privateOnly } = { groupOnly: false, privateOnly: false }) {
         if (this.slashCommands[command])
             throw `A command with the name ${command} already exists!`;
         let obj = { help: helpMessage, callback, groupOnly, privateOnly };
         this.slashCommands[command] = obj;
+    }
+    isKeyboardHandler(command) {
+        return command.onQuery !== undefined && command.getCallbackNames !== undefined;
     }
     registerBotCommand(command) {
         let slashCommands = command.getSlashCommands();
@@ -34,6 +58,9 @@ class TelegramBot {
         }
         else {
             this.registerSlashCommand(slashCommands, help, callback, options);
+        }
+        if (this.isKeyboardHandler(command)) {
+            this.keyboardHandler.registerHandler(command);
         }
     }
     callApiMethod(method, body, callback, error) {
@@ -73,6 +100,9 @@ class TelegramBot {
             req.write(JSON.stringify(body));
         req.end();
     }
+    registerReplyHandler(messageId, chatId, callback) {
+        this.replyHandlers[messageId] = { chat: chatId, handler: callback, time: moment() };
+    }
     setWebhook(domain, server) {
         let route = `/${config_1.default.API_KEY}`;
         server.registerRoute(route, (req) => {
@@ -102,6 +132,8 @@ class TelegramBot {
         try {
             if (update.message)
                 this.processMessage(update.message);
+            else if (update.callback_query)
+                this.keyboardHandler.handleCallback(update.callback_query);
         }
         catch (_a) {
         }
@@ -114,9 +146,20 @@ class TelegramBot {
             this.processTextMessage(message);
     }
     processTextMessage(message) {
+        if (message.reply_to_message && this.handleReply(message))
+            return;
         if (message.text[0] == '/') {
             return this.interpretSlashCommand(message);
         }
+    }
+    handleReply(message) {
+        let entry = this.replyHandlers[message.reply_to_message.message_id];
+        if (entry) {
+            entry.handler(new telegram_message_context_1.TelegramMessageContext(message, null, []), new telegram_message_output_1.TelegramMessageOutput(this, message));
+            delete this.replyHandlers[message.reply_to_message.message_id];
+            return true;
+        }
+        return false;
     }
     interpretSlashCommand(message) {
         let [command, ...args] = message.text.split(' ');

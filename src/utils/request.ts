@@ -2,12 +2,13 @@ import { IncomingMessage, ServerResponse } from "http";
 import { Server } from './server';
 
 export class Request {
-    get path(): string  {
+    get path(): string {
         return <string>this.request.url;
     }
-    get method(): string  {
+    get method(): string {
         return <string>this.request.method;
     }
+    get Request(): IncomingMessage { return this.request; }
     constructor(
         private request: IncomingMessage,
         private response: ServerResponse,
@@ -15,19 +16,19 @@ export class Request {
         private server: Server
     ) {
     }
-    
-    success(data? : any, {mime} : {mime?: string} = {}): any {
+
+    success(data?: any, { mime }: { mime?: string } = {}): any {
         this.response.statusCode = 200;
-        if(mime)
+        if (mime)
             this.response.setHeader('Content-Type', mime);
-        if(data)
+        if (data)
             this.write(data);
         this.response.end();
     }
-    write(data: any){
+    write(data: any) {
         this.response.write(data);
     }
-    asString(callback: (str : string)=> void){
+    asString(callback: (str: string) => void) {
         let body = '';
         this.request.on('data', chunk => {
             body += chunk;
@@ -35,7 +36,7 @@ export class Request {
             callback(body);
         });
     }
-    asObject<T>(callback: (obj : T) => void) {
+    asObject<T>(callback: (obj: T) => void) {
         this.asString(str => callback(<T>JSON.parse(str)));
     }
 }

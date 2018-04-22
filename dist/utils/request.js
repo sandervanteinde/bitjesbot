@@ -13,6 +13,7 @@ class Request {
     get method() {
         return this.request.method;
     }
+    get Request() { return this.request; }
     success(data, { mime } = {}) {
         this.response.statusCode = 200;
         if (mime)

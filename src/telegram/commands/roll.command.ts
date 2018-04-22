@@ -1,6 +1,7 @@
 import { IBotCommand } from "../bot-helpers";
 import { TelegramMessageContext } from "../telegram-message-context";
-import { TelegramMessageOutput } from "../telegram-message-output";
+import { TelegramMessageOutput } from "../outputs/telegram-message-output";
+import { TelegramOutput } from "../outputs/telegram-output";
 
 export class RollCommand implements IBotCommand {
     private dndStyleRoll : RegExp = /(\d+)d(\d+)/i;
@@ -16,7 +17,7 @@ export class RollCommand implements IBotCommand {
     isPrivateOnly(): boolean {
         return false;
     }
-    onMessage(context: TelegramMessageContext, output: TelegramMessageOutput): void {
+    onMessage(context: TelegramMessageContext, output: TelegramOutput): void {
         let param = context.args.length >= 1 ? context.args[0] : '6';
         let matches = param.match(this.dndStyleRoll);
         if(matches)
@@ -31,7 +32,7 @@ export class RollCommand implements IBotCommand {
             }
         }
     }
-    private handleDndRoll(context: TelegramMessageContext, output: TelegramMessageOutput, match: RegExpMatchArray): any {
+    private handleDndRoll(context: TelegramMessageContext, output: TelegramOutput, match: RegExpMatchArray): any {
         let amountOfDice = Number(match[1]);
         let diceSize = Number(match[2]);
         let returnMessage : string;

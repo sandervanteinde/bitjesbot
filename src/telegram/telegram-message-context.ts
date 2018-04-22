@@ -1,6 +1,9 @@
 import { TelegramMessage } from "../../typings/telegram";
 
 export class TelegramMessageContext {
+    get hasArguments() :boolean{
+        return this.args != null && this.args.length > 0;
+    }
     get GroupChat(): boolean {
         return !this.PrivateChat;
     }
@@ -9,7 +12,7 @@ export class TelegramMessageContext {
     }
     constructor(
         public message: TelegramMessage,
-        public slashCommand: string,
+        public slashCommand: string | null,
         public args: string[]
     ) { }
 }

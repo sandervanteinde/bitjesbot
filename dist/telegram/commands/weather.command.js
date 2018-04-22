@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const https_1 = require("https");
-const config_1 = require("../../utils/config");
 const bodyparser_1 = require("../../utils/bodyparser");
+const config_1 = require("../../utils/config");
 const db_1 = require("../../utils/db");
 class WeatherDbEntry {
     constructor(user, location, description) {

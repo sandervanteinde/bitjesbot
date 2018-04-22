@@ -1,12 +1,11 @@
-import { IBotCommand } from "../bot-helpers";
-import { TelegramMessageContext } from "../telegram-message-context";
-import { TelegramMessageOutput } from "../outputs/telegram-message-output";
+import bodyparser from "../../utils/bodyparser";
 import { Database } from "../../utils/db";
 import { Server } from "../../utils/server";
-import bodyparser from "../../utils/bodyparser";
-import { TelegramBot } from "../telegram-bot";
-import { TelegramOutput } from "../outputs/telegram-output";
+import { IBotCommand } from "../bot-helpers";
 import { ChatIdOutput } from "../outputs/chat-id-output";
+import { TelegramOutput } from "../outputs/telegram-output";
+import { TelegramBot } from "../telegram-bot";
+import { TelegramMessageContext } from "../telegram-message-context";
 
 type IskaDatabaseEntry = { id: number };
 export class IskaCommand implements IBotCommand {

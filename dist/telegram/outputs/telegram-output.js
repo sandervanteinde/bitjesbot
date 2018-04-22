@@ -28,11 +28,12 @@ class TelegramOutput {
         this.bot.callApiMethod('sendMessage', options, (resp) => { if (callback)
             callback(resp.result); });
     }
-    editMessage(message, { keyboard } = {}) {
+    editMessage(message, { keyboard, parse_mode } = {}) {
         let options = {
             chat_id: this.getChatId(),
             message_id: this.getMessageId(),
-            text: message
+            text: message,
+            parse_mode
         };
         if (keyboard)
             options.reply_markup = { inline_keyboard: keyboard };

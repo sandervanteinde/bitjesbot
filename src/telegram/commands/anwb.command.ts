@@ -1,16 +1,13 @@
-import { IBotCommand } from "../bot-helpers";
-import { TelegramMessageContext } from "../telegram-message-context";
-import { TelegramMessageOutput } from "../outputs/telegram-message-output";
-import { AnwbRoadEntry, AnwbResult } from "../../../typings/anwb";
 import { get } from "https";
+import { AnwbResult, AnwbRoadEntry } from "../../../typings/anwb";
 import bodyparser from "../../utils/bodyparser";
+import { IBotCommand } from "../bot-helpers";
 import { TelegramOutput } from "../outputs/telegram-output";
+import { TelegramMessageContext } from "../telegram-message-context";
 
 export class AnwbCommand implements IBotCommand {
     cache: undefined | { [key: string]: AnwbRoadEntry };
     get roadRegex(): RegExp { return /([AN]\d+)/gi };
-    constructor() {
-    }
 
     getSlashCommands(): string | string[] {
         return 'anwb';

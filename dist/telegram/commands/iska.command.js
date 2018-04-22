@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const db_1 = require("../../utils/db");
 const bodyparser_1 = require("../../utils/bodyparser");
+const db_1 = require("../../utils/db");
 const chat_id_output_1 = require("../outputs/chat-id-output");
 class IskaCommand {
     constructor(server, bot) {

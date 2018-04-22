@@ -1,6 +1,5 @@
+import { TelegramMessage } from "../../../typings/telegram";
 import { TelegramBot } from "../telegram-bot";
-import { TelegramMessage, TelegramSendMessage } from "../../../typings/telegram";
-import { TelegramMessageContext } from "../telegram-message-context";
 import { TelegramOutput } from "./telegram-output";
 
 export class TelegramMessageOutput extends TelegramOutput {

@@ -5,8 +5,6 @@ const bodyparser_1 = require("../../utils/bodyparser");
 class AnwbCommand {
     get roadRegex() { return /([AN]\d+)/gi; }
     ;
-    constructor() {
-    }
     getSlashCommands() {
         return 'anwb';
     }

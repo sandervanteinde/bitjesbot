@@ -1,15 +1,15 @@
-import { TelegramUser, TelegramMessage, TelegramUpdate, TelegramResponse } from '../../typings/telegram';
-import config from '../utils/config';
-import { Server } from '../utils/server';
-import loop from '../utils/loop';
 import { request } from 'https';
-import bodyparser from '../utils/bodyparser';
-import { SlashCommandObject, SlashCommandCallback, IBotCommand } from './bot-helpers';
-import { TelegramMessageContext } from './telegram-message-context';
-import { TelegramMessageOutput } from './outputs/telegram-message-output';
 import * as moment from 'moment';
+import { TelegramMessage, TelegramResponse, TelegramUpdate } from '../../typings/telegram';
+import bodyparser from '../utils/bodyparser';
+import config from '../utils/config';
+import loop from '../utils/loop';
+import { Server } from '../utils/server';
+import { IBotCommand, SlashCommandCallback, SlashCommandObject } from './bot-helpers';
+import { IKeyboardHandler, KeyboardHandler } from './keyboard/keyboard-handler';
+import { TelegramMessageOutput } from './outputs/telegram-message-output';
 import { ForceReplyFunction, TelegramOutput } from './outputs/telegram-output';
-import { KeyboardHandler, IKeyboardHandler } from './keyboard/keyboard-handler';
+import { TelegramMessageContext } from './telegram-message-context';
 
 type ReplyHandlerObject = {
     chat: number;

@@ -1,6 +1,5 @@
-import { TelegramInlineKeyboardButton, TelegramCallbackQuery, TelegramAnswerCallbackQuery } from "../../../typings/telegram";
+import { TelegramAnswerCallbackQuery, TelegramCallbackQuery } from "../../../typings/telegram";
 import { info } from "../../utils/log";
-import { TelegramOutput } from "../outputs/telegram-output";
 import { CallbackQueryOutput } from "../outputs/callback-query-output";
 import { TelegramBot } from "../telegram-bot";
 import { KeyboardContext } from "./keyboard-context";

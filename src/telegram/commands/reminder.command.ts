@@ -1,17 +1,16 @@
-import { IBotCommand } from "../bot-helpers";
-import { TelegramMessageContext } from "../telegram-message-context";
-import { TelegramMessageOutput } from "../outputs/telegram-message-output";
-import { IKeyboardHandler } from "../keyboard/keyboard-handler";
-import { TelegramCallbackQuery, TelegramInlineKeyboardButton, TelegramMessage } from "../../../typings/telegram";
-import { TelegramOutput } from "../outputs/telegram-output";
 import * as moment from 'moment';
-import { button } from "../keyboard/keyboard";
-import { CallbackQueryOutput } from "../outputs/callback-query-output";
+import { TelegramInlineKeyboardButton, TelegramMessage } from "../../../typings/telegram";
 import { Database } from "../../utils/db";
-import { TelegramBot } from "../telegram-bot";
 import loop from "../../utils/loop";
+import { IBotCommand } from "../bot-helpers";
+import { button } from "../keyboard/keyboard";
 import { KeyboardContext } from "../keyboard/keyboard-context";
+import { IKeyboardHandler } from "../keyboard/keyboard-handler";
+import { CallbackQueryOutput } from "../outputs/callback-query-output";
 import { ChatIdOutput } from "../outputs/chat-id-output";
+import { TelegramOutput } from "../outputs/telegram-output";
+import { TelegramBot } from "../telegram-bot";
+import { TelegramMessageContext } from "../telegram-message-context";
 
 const dateIntervals: { [key: string]: [number, string] } = {
     minute: [1, 'minute'],

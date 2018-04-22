@@ -1,5 +1,5 @@
-import { TelegramOutput } from "./telegram-output";
 import { TelegramBot } from "../telegram-bot";
+import { TelegramOutput } from "./telegram-output";
 
 export class ChatIdOutput extends TelegramOutput {
     constructor(bot : TelegramBot, private chatId: number){

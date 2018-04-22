@@ -18,8 +18,10 @@ function formatButtons(...buttons) {
     let currentArr = [];
     for (let i = 0; i < buttons.length; i++) {
         currentArr.push(buttons[i]);
-        if (currentArr.length == maxSize)
+        if (currentArr.length == maxSize) {
             result.push(currentArr);
+            currentArr = [];
+        }
     }
     if (currentArr.length > 0)
         result.push(currentArr);

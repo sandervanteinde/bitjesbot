@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const https_1 = require("https");
+const moment = require("moment");
+const bodyparser_1 = require("../utils/bodyparser");
 const config_1 = require("../utils/config");
 const loop_1 = require("../utils/loop");
-const https_1 = require("https");
-const bodyparser_1 = require("../utils/bodyparser");
-const telegram_message_context_1 = require("./telegram-message-context");
-const telegram_message_output_1 = require("./outputs/telegram-message-output");
-const moment = require("moment");
 const keyboard_handler_1 = require("./keyboard/keyboard-handler");
+const telegram_message_output_1 = require("./outputs/telegram-message-output");
+const telegram_message_context_1 = require("./telegram-message-context");
 class TelegramBot {
     constructor() {
         this.slashCommands = {};

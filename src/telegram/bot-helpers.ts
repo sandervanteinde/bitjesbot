@@ -1,6 +1,5 @@
-import { TelegramMessage } from "../../typings/telegram";
-import { TelegramMessageContext } from "./telegram-message-context";
 import { TelegramOutput } from "./outputs/telegram-output";
+import { TelegramMessageContext } from "./telegram-message-context";
 
 export type SlashCommandCallback = (context: TelegramMessageContext, output: TelegramOutput) => void;
 export type SlashCommandObject = {
@@ -12,7 +11,7 @@ export type SlashCommandObject = {
 export interface IBotCommand{
     getSlashCommands() : string | string[];
     onMessage(context: TelegramMessageContext, output : TelegramOutput) : void;
-    getHelpMessageText() : string | string[] | null;
+    getHelpMessageText() : string | (string | null)[] | null;
     isGroupOnly() : boolean;
     isPrivateOnly() : boolean;
 }

@@ -1,9 +1,8 @@
+import { TelegramEditMessageText, TelegramInlineKeyboardButton, TelegramMessage, TelegramSendLocation, TelegramSendMessage } from "../../../typings/telegram";
 import { TelegramBot } from "../telegram-bot";
-import { TelegramSendMessage, TelegramMessage, TelegramInlineKeyboardButton, TelegramEditMessageText, TelegramSendLocation } from "../../../typings/telegram";
 import { TelegramMessageContext } from "../telegram-message-context";
-import { TelegramMessageOutput } from "./telegram-message-output";
 type ReplyToChatOptions = {
-    reply: boolean;
+    reply?: boolean;
     forceReply?: ForceReplyFunction;
     parse_mode?: 'Markdown' | 'HTML';
     callback?: SendMessageReplyCallback;
@@ -11,6 +10,7 @@ type ReplyToChatOptions = {
 };
 type EditMessageOptions = {
     keyboard?: TelegramInlineKeyboardButton[][]
+    parse_mode?: 'Markdown' | 'HTML';
 };
 type SendLocationOptions = {
     reply: boolean;
@@ -47,11 +47,12 @@ export abstract class TelegramOutput {
         }
         this.bot.callApiMethod<TelegramMessage>('sendMessage', options, (resp) => { if (callback) callback(resp.result); });
     }
-    editMessage(message: string, { keyboard }: EditMessageOptions = {}) {
+    editMessage(message: string, { keyboard, parse_mode }: EditMessageOptions = {}) {
         let options: TelegramEditMessageText = {
             chat_id: this.getChatId(),
             message_id: this.getMessageId(),
-            text: message
+            text: message,
+            parse_mode
         };
         if (keyboard)
             options.reply_markup = { inline_keyboard: keyboard };

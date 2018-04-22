@@ -1,7 +1,6 @@
 import { IBotCommand } from "../bot-helpers";
-import { TelegramMessageContext } from "../telegram-message-context";
-import { TelegramMessageOutput } from "../outputs/telegram-message-output";
 import { TelegramOutput } from "../outputs/telegram-output";
+import { TelegramMessageContext } from "../telegram-message-context";
 
 export class RollCommand implements IBotCommand {
     private dndStyleRoll : RegExp = /(\d+)d(\d+)/i;

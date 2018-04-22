@@ -1,6 +1,6 @@
-import { TelegramOutput } from "./telegram-output";
-import { TelegramBot } from "../telegram-bot";
 import { TelegramCallbackQuery } from "../../../typings/telegram";
+import { TelegramBot } from "../telegram-bot";
+import { TelegramOutput } from "./telegram-output";
 
 export class CallbackQueryOutput extends TelegramOutput {
     constructor(bot : TelegramBot, private query : TelegramCallbackQuery){

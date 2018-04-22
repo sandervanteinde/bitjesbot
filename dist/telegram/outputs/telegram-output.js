@@ -38,6 +38,16 @@ class TelegramOutput {
             options.reply_markup = { inline_keyboard: keyboard };
         this.bot.callApiMethod('editMessageText', options);
     }
+    sendLocation({ lat, lng }, { reply } = { reply: false }) {
+        let options = {
+            chat_id: this.getChatId(),
+            latitude: lat,
+            longitude: lng
+        };
+        if (reply)
+            options.reply_to_message_id = this.getMessageId();
+        this.bot.callApiMethod('sendLocation', options);
+    }
 }
 exports.TelegramOutput = TelegramOutput;
 //# sourceMappingURL=telegram-output.js.map

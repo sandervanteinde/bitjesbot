@@ -12,7 +12,7 @@ export type SlashCommandObject = {
 export interface IBotCommand{
     getSlashCommands() : string | string[];
     onMessage(context: TelegramMessageContext, output : TelegramOutput) : void;
-    getHelpMessageText() : string | null;
+    getHelpMessageText() : string | string[] | null;
     isGroupOnly() : boolean;
     isPrivateOnly() : boolean;
 }

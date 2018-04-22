@@ -383,3 +383,12 @@ export class TelegramEditMessageText{
     public disable_web_page_preview? : boolean;
     public reply_markup?: TelegramInlineKeyboardMarkup;
 }
+export class TelegramSendLocation{
+    public chat_id: number;
+    public latitude: number;
+    public longitude: number;
+    public live_period?: number;
+    public disable_notifications?: boolean;
+    public reply_to_message_id?: number;
+    public reply_markup?: TelegramInlineKeyboardMarkup | TelegramReplyKeyboardMarkup | TelegramReplyKeyboardRemove | TelegramForceReply;
+}

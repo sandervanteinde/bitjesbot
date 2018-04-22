@@ -9,6 +9,7 @@ import { IskaCommand } from "./telegram/commands/iska.command";
 import { PickupLineCommand } from "./telegram/commands/pickupline.command";
 import * as momenttz from 'moment-timezone';
 import { ReminderCommand } from "./telegram/commands/reminder.command";
+import { WeatherCommand } from "./telegram/commands/weather.command";
 
 
 let telegram = new TelegramBot();
@@ -16,6 +17,7 @@ telegram.registerBotCommand(new RollCommand());
 telegram.registerBotCommand(new AnwbCommand());
 telegram.registerBotCommand(new PickupLineCommand());
 telegram.registerBotCommand(new ReminderCommand(telegram));
+telegram.registerBotCommand(new WeatherCommand());
 if(config.domain){
     let server = new Server();
     server.startWithOptions(config, () => {

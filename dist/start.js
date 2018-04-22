@@ -10,11 +10,13 @@ const iska_command_1 = require("./telegram/commands/iska.command");
 const pickupline_command_1 = require("./telegram/commands/pickupline.command");
 const momenttz = require("moment-timezone");
 const reminder_command_1 = require("./telegram/commands/reminder.command");
+const weather_command_1 = require("./telegram/commands/weather.command");
 let telegram = new telegram_bot_1.TelegramBot();
 telegram.registerBotCommand(new roll_command_1.RollCommand());
 telegram.registerBotCommand(new anwb_command_1.AnwbCommand());
 telegram.registerBotCommand(new pickupline_command_1.PickupLineCommand());
 telegram.registerBotCommand(new reminder_command_1.ReminderCommand(telegram));
+telegram.registerBotCommand(new weather_command_1.WeatherCommand());
 if (config_1.default.domain) {
     let server = new server_1.Server();
     server.startWithOptions(config_1.default, () => {

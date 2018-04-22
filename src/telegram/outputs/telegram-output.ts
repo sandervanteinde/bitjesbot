@@ -1,5 +1,5 @@
 import { TelegramBot } from "../telegram-bot";
-import { TelegramSendMessage, TelegramMessage, TelegramInlineKeyboardButton, TelegramEditMessageText } from "../../../typings/telegram";
+import { TelegramSendMessage, TelegramMessage, TelegramInlineKeyboardButton, TelegramEditMessageText, TelegramSendLocation } from "../../../typings/telegram";
 import { TelegramMessageContext } from "../telegram-message-context";
 import { TelegramMessageOutput } from "./telegram-message-output";
 type ReplyToChatOptions = {
@@ -8,11 +8,16 @@ type ReplyToChatOptions = {
     parse_mode?: 'Markdown' | 'HTML';
     callback?: SendMessageReplyCallback;
     keyboard?: TelegramInlineKeyboardButton[][];
-}
+};
+type EditMessageOptions = {
+    keyboard?: TelegramInlineKeyboardButton[][]
+};
+type SendLocationOptions = {
+    reply: boolean;
+};
 type SendMessageReplyCallback = (msg: TelegramMessage) => void;
 export type ForceReplyFunction = (context: TelegramMessageContext, output: TelegramOutput) => void;
 export abstract class TelegramOutput {
-
     constructor(
         private bot: TelegramBot
     ) { }
@@ -42,7 +47,7 @@ export abstract class TelegramOutput {
         }
         this.bot.callApiMethod<TelegramMessage>('sendMessage', options, (resp) => { if (callback) callback(resp.result); });
     }
-    editMessage(message: string, { keyboard }: { keyboard?: TelegramInlineKeyboardButton[][] } = {}) {
+    editMessage(message: string, { keyboard }: EditMessageOptions = {}) {
         let options: TelegramEditMessageText = {
             chat_id: this.getChatId(),
             message_id: this.getMessageId(),
@@ -51,5 +56,15 @@ export abstract class TelegramOutput {
         if (keyboard)
             options.reply_markup = { inline_keyboard: keyboard };
         this.bot.callApiMethod<TelegramMessage>('editMessageText', options);
+    }
+    sendLocation({lat,lng}: {lat: number, lng: number}, {reply} : SendLocationOptions = {reply: false}): any {
+        let options : TelegramSendLocation= {
+            chat_id: this.getChatId(),
+            latitude: lat,
+            longitude: lng
+        };
+        if(reply)
+            options.reply_to_message_id = this.getMessageId();
+        this.bot.callApiMethod<TelegramMessage>('sendLocation', options);
     }
 }

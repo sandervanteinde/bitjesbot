@@ -54,9 +54,18 @@ class TelegramBot {
         };
         let callback = (context, output) => command.onMessage(context, output);
         if (slashCommands instanceof Array) {
-            slashCommands.forEach(s => this.registerSlashCommand(s, help, callback, options));
+            if (help && help instanceof Array) {
+                let asArray = help;
+                slashCommands.forEach((s, i) => this.registerSlashCommand(s, asArray[i], callback, options));
+            }
+            else {
+                let asNotArray = help;
+                slashCommands.forEach((s, i) => this.registerSlashCommand(s, asNotArray, callback, options));
+            }
         }
         else {
+            if (help && help instanceof Array)
+                [help] = help;
             this.registerSlashCommand(slashCommands, help, callback, options);
         }
         if (this.isKeyboardHandler(command)) {

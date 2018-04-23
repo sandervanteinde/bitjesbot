@@ -52,6 +52,7 @@ class Server {
         secureServer.listen(port);
         this.secureServer = secureServer;
         log_1.info(`https server running on port ${port}`);
+        this.runningSecure = true;
     }
     startNormal(port) {
         if (this.runningNormal)

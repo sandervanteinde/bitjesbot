@@ -55,8 +55,8 @@ class TriviaCommand {
         https_1.get('https://opentdb.com/api_token.php?command=request', res => bodyparser_1.default.parseJson(res, content => {
             session.token = content.token;
         }));
-        setTimeout(() => output.sendToChat('Starting in 15 seconds'), 1000);
-        setTimeout(() => session.sendQuestion(), 3000);
+        setTimeout(() => output.sendToChat('Starting in 15 seconds'), 15000);
+        setTimeout(() => session.sendQuestion(), 30000);
     }
     handleStop(context, output) {
         let chatId = context.message.chat.id;

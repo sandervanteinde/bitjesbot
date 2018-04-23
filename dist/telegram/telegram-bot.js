@@ -41,6 +41,9 @@ class TelegramBot {
             throw `A command with the name ${command} already exists!`;
         let obj = { help: helpMessage, callback, groupOnly, privateOnly };
         this.slashCommands[command] = obj;
+        if (config_1.default.botName) {
+            this.slashCommands[`${command}@${config_1.default.botName}`] = { callback, groupOnly, privateOnly, help: null };
+        }
     }
     isKeyboardHandler(command) {
         return command.onQuery !== undefined && command.getCallbackNames !== undefined;

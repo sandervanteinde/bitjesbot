@@ -1,4 +1,11 @@
 {
+  "name": "bitjesbot",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sander van 't Einde",
+    "email": "sandervanteinde@gmail.com",
+    "url": "https://www.github.com/sandervanteinde"
+  },
   "requires": true,
   "lockfileVersion": 1,
   "description": "Solution for the BitjesBot telegram bot",
@@ -14,5 +21,9 @@
     "moment-timezone": "^0.5.14",
     "node-html-encoder": "0.0.2",
     "nodejs-websocket": "^1.7.1"
+  },
+  "devDependencies": {
+    "typescript": "^2.8.3",
+    "@types/node": "^9.6.6"
   }
 }

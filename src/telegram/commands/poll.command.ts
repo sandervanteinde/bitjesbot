@@ -9,8 +9,9 @@ import { CallbackQueryOutput } from "../outputs/callback-query-output";
 import { ChatIdOutput } from "../outputs/chat-id-output";
 import { TelegramBot } from "../telegram-bot";
 import { Database } from "../../utils/db";
-import { TelegramInlineKeyboardButton } from "../../../typings/telegram";
+import { TelegramInlineKeyboardButton, TelegramUser } from "../../../typings/telegram";
 import { MessageIdOutput } from "../outputs/message-id-output";
+import { parseUsername } from "../../utils/utils";
 
 class PollEntry {
     public question: string = '';
@@ -117,17 +118,39 @@ export class PollCommand implements IBotCommand, IKeyboardHandler {
     private modifyMessageToReflectVotes(entry: PollDatabaseEntry) {
         this.db.saveChanges();
         let context = new MessageIdOutput(this.bot, entry.messageId, entry.chatId);
-        let msg = `Poll: ${entry.question}\nVotes:`;
+        let msg = `Poll: ${entry.question}\n\nVotes:`;
         let obj: number[] = [];
+        let users: { [userId: number]: TelegramUser } = {};
+        let count = 0;
+        let callback : (() => void | void);
         for (let userId in entry.voted) {
-            if(!obj[entry.voted[userId]]) obj[entry.voted[userId]] = 0;
+            if (!obj[entry.voted[userId]]) obj[entry.voted[userId]] = 0;
             obj[entry.voted[userId]]++;
+            count++;
+            this.bot.getUserInGroup(entry.chatId, Number(userId), (user) => { 
+                if (user) 
+                    users[userId] = user; 
+                count--; 
+                if(count == 0 && callback){
+                    callback();
+                }
+            });
         }
-        for (let i = 0; i < entry.answers.length; i++) {
-            let answer = entry.answers[i];
-            msg += `\n${answer}: ${obj[i] || 0}`;
+        callback = () => {
+            for(let userId in entry.voted){
+                let user = users[userId];
+                msg += `\n${parseUsername(user)}: ${entry.answers[entry.voted[userId]]}`;
+            }
+            msg += '\n\nTotal votes:';
+            for(let i = 0; i < entry.answers.length; i++){
+                let answer = entry.answers[i];
+                msg += `\n${answer}: ${obj[i] || 0}`
+            }
+            context.editMessage(msg, { keyboard: this.constructKeyboardForEntry(entry.answers) });
         }
-        context.editMessage(msg, { keyboard: this.constructKeyboardForEntry(entry.answers) });
+        if(count == 0){
+            callback();
+        }
     }
     constructKeyboardForEntry(answers: string[]): TelegramInlineKeyboardButton[][] {
         return formatButtons(...answers.map(c => button(c, 'poll', 'answer', c)))

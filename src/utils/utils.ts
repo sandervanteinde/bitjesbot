@@ -1,3 +1,5 @@
+import { TelegramUser } from "../../typings/telegram";
+
 export function shuffle<T>(arr: T[], count: number = 100): T[] {
     for (let i = 0; i < count; i++) {
         let index1 = Math.floor(Math.random() * arr.length);
@@ -8,4 +10,15 @@ export function shuffle<T>(arr: T[], count: number = 100): T[] {
         arr[index2] = temp;
     }
     return arr;
+}
+export function parseUsername(user: TelegramUser): string {
+    if (user.first_name) {
+        if (user.last_name)
+            return `${user.first_name} ${user.last_name}`;
+        else
+            return user.first_name;
+    } else if (user.username) {
+        return user.username;
+    }
+    return 'Unknown user';
 }

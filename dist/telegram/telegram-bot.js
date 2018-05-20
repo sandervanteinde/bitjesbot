@@ -8,6 +8,7 @@ const loop_1 = require("../utils/loop");
 const keyboard_handler_1 = require("./keyboard/keyboard-handler");
 const telegram_message_output_1 = require("./outputs/telegram-message-output");
 const telegram_message_context_1 = require("./telegram-message-context");
+const telegram_user_cache_1 = require("./telegram-user-cache");
 class TelegramBot {
     constructor() {
         this.slashCommands = {};
@@ -16,6 +17,7 @@ class TelegramBot {
         this.url = `bot${config_1.default.API_KEY}`;
         this.replyHandlers = {};
         this.keyboardHandler = new keyboard_handler_1.KeyboardHandler(this);
+        this.userCache = new telegram_user_cache_1.TelegramUserCache(this);
         this.subscribeReplyHandlerDeletion();
     }
     subscribeReplyHandlerDeletion(timeInMinutes = 60) {
@@ -74,6 +76,9 @@ class TelegramBot {
         if (this.isKeyboardHandler(command)) {
             this.keyboardHandler.registerHandler(command);
         }
+    }
+    getUserInGroup(chatId, userId, callback) {
+        return this.userCache.getUser(chatId, userId, callback);
     }
     callApiMethod(method, body, callback, error) {
         let postOptions = {
@@ -154,6 +159,9 @@ class TelegramBot {
         }
     }
     processMessage(message) {
+        if (message.from && message.chat) {
+            this.userCache.addUserToCache(message.chat.id, message.from.id, message.from);
+        }
         if (message.text)
             this.processTextMessage(message);
     }

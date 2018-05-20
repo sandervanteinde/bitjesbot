@@ -1,6 +1,6 @@
 import { request } from 'https';
 import * as moment from 'moment';
-import { TelegramMessage, TelegramResponse, TelegramUpdate } from '../../typings/telegram';
+import { TelegramMessage, TelegramResponse, TelegramUpdate, TelegramUser } from '../../typings/telegram';
 import bodyparser from '../utils/bodyparser';
 import config from '../utils/config';
 import loop from '../utils/loop';
@@ -10,6 +10,7 @@ import { IKeyboardHandler, KeyboardHandler } from './keyboard/keyboard-handler';
 import { TelegramMessageOutput } from './outputs/telegram-message-output';
 import { ForceReplyFunction, TelegramOutput } from './outputs/telegram-output';
 import { TelegramMessageContext } from './telegram-message-context';
+import { TelegramUserCache } from './telegram-user-cache';
 
 type ReplyHandlerObject = {
     chat: number;
@@ -23,6 +24,7 @@ export class TelegramBot {
     private url: string = `bot${config.API_KEY}`;
     private replyHandlers: { [key: string]: ReplyHandlerObject } = {};
     private keyboardHandler : KeyboardHandler = new KeyboardHandler(this);
+    private userCache : TelegramUserCache = new TelegramUserCache(this);
     constructor() {
         this.subscribeReplyHandlerDeletion();
     }
@@ -87,6 +89,10 @@ export class TelegramBot {
         if(this.isKeyboardHandler(command)){
             this.keyboardHandler.registerHandler(command);
         }
+    }
+
+    getUserInGroup(chatId: number | string, userId: number, callback : (user?: TelegramUser) => void){
+        return this.userCache.getUser(chatId, userId, callback);
     }
 
     callApiMethod<TExpectedReturn>(
@@ -175,6 +181,9 @@ export class TelegramBot {
         }
     }
     private processMessage(message: TelegramMessage) {
+        if(message.from && message.chat){
+            this.userCache.addUserToCache(message.chat.id, message.from.id, message.from);
+        }
         if (message.text)
             this.processTextMessage(message);
     }

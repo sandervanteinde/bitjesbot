@@ -12,4 +12,7 @@ export class CallbackQueryOutput extends TelegramOutput {
     getMessageId(): number {
         return this.query.message.message_id;
     }
+    getFromId(): number{
+        return this.query.from.id;
+    }
 }

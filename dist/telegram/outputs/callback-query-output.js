@@ -12,6 +12,9 @@ class CallbackQueryOutput extends telegram_output_1.TelegramOutput {
     getMessageId() {
         return this.query.message.message_id;
     }
+    getFromId() {
+        return this.query.from.id;
+    }
 }
 exports.CallbackQueryOutput = CallbackQueryOutput;
 //# sourceMappingURL=callback-query-output.js.map

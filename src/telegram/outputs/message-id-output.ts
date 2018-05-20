@@ -14,4 +14,7 @@ export class MessageIdOutput extends TelegramOutput {
     getMessageId(): number {
         return this.messageId;
     }
+    getFromId(): number {
+        throw 'MessageIdOutput does not support the fetching of the from id';
+    }
 }

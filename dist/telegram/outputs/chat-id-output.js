@@ -12,6 +12,9 @@ class ChatIdOutput extends telegram_output_1.TelegramOutput {
     getMessageId() {
         throw 'ChatIdOutput does not support the fetching of message ids!';
     }
+    getFromId() {
+        throw 'ChatIdOutput does not support the fetching of from ids!';
+    }
 }
 exports.ChatIdOutput = ChatIdOutput;
 //# sourceMappingURL=chat-id-output.js.map

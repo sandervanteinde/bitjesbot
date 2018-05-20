@@ -63,6 +63,14 @@ class Database {
     filter(callbackFn) {
         return this.items.filter(callbackFn);
     }
+    firstOrVoid(callbackFn = (i) => true) {
+        if (!this.items)
+            return;
+        for (let item of this.items) {
+            if (callbackFn(item))
+                return item;
+        }
+    }
     filePath() {
         return `./database/${this.name}.json`;
     }

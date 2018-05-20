@@ -12,6 +12,9 @@ class TelegramMessageOutput extends telegram_output_1.TelegramOutput {
     getMessageId() {
         return this.message.message_id;
     }
+    getFromId() {
+        return this.message.from.id;
+    }
 }
 exports.TelegramMessageOutput = TelegramMessageOutput;
 //# sourceMappingURL=telegram-message-output.js.map

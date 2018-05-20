@@ -11,4 +11,7 @@ export class ChatIdOutput extends TelegramOutput {
     getMessageId(): number {
         throw 'ChatIdOutput does not support the fetching of message ids!';
     }
+    getFromId() : number{
+        throw 'ChatIdOutput does not support the fetching of from ids!';
+    }
 }

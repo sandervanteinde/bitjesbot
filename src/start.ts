@@ -11,6 +11,7 @@ import * as momenttz from 'moment-timezone';
 import { ReminderCommand } from "./telegram/commands/reminder.command";
 import { WeatherCommand } from "./telegram/commands/weather.command";
 import { TriviaCommand } from "./telegram/commands/trivia.command";
+import { PollCommand } from "./telegram/commands/poll.command";
 
 
 let telegram = new TelegramBot();
@@ -20,6 +21,7 @@ telegram.registerBotCommand(new PickupLineCommand());
 telegram.registerBotCommand(new ReminderCommand(telegram));
 telegram.registerBotCommand(new WeatherCommand());
 telegram.registerBotCommand(new TriviaCommand(telegram));
+telegram.registerBotCommand(new PollCommand(telegram));
 if(config.domain){
     let server = new Server();
     server.startWithOptions(config, () => {

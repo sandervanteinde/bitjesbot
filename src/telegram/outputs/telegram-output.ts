@@ -1,4 +1,4 @@
-import { TelegramEditMessageText, TelegramInlineKeyboardButton, TelegramMessage, TelegramSendLocation, TelegramSendMessage } from "../../../typings/telegram";
+import { TelegramEditMessageText, TelegramInlineKeyboardButton, TelegramMessage, TelegramSendLocation, TelegramSendMessage, TelegramResponse } from "../../../typings/telegram";
 import { TelegramBot } from "../telegram-bot";
 import { TelegramMessageContext } from "../telegram-message-context";
 type ReplyToChatOptions = {
@@ -7,6 +7,7 @@ type ReplyToChatOptions = {
     parse_mode?: 'Markdown' | 'HTML';
     callback?: SendMessageReplyCallback;
     keyboard?: TelegramInlineKeyboardButton[][];
+    error?: (err : TelegramResponse<void>) => void;
 };
 type EditMessageOptions = {
     keyboard?: TelegramInlineKeyboardButton[][]
@@ -23,11 +24,19 @@ export abstract class TelegramOutput {
     ) { }
     abstract getChatId(): number;
     abstract getMessageId(): number;
+    abstract getFromId(): number;
 
-    sendToChat(message: string, { reply, forceReply, parse_mode, callback, keyboard }: ReplyToChatOptions = { reply: false }) {
+    sendToChat(message: string, options: ReplyToChatOptions = { reply: false }) {
+        this.sendToId(this.getChatId(), message, options);
+    }
+    sendToFrom(message: string, options: ReplyToChatOptions = { reply: false }) {
+        this.sendToId(this.getFromId(), message, options);
+    }
+    private sendToId(id: number, message: string, { reply, forceReply, parse_mode, callback, keyboard, error }: ReplyToChatOptions = { reply: false }) {
+
         let options: TelegramSendMessage = {
             text: message,
-            chat_id: this.getChatId(),
+            chat_id: id,
             parse_mode
         };
         if (reply)
@@ -45,7 +54,7 @@ export abstract class TelegramOutput {
                     oldCallback(msg);
             }
         }
-        this.bot.callApiMethod<TelegramMessage>('sendMessage', options, (resp) => { if (callback) callback(resp.result); });
+        this.bot.callApiMethod<TelegramMessage>('sendMessage', options, (resp) => { if (callback) callback(resp.result); }, error || undefined);
     }
     editMessage(message: string, { keyboard, parse_mode }: EditMessageOptions = {}) {
         let options: TelegramEditMessageText = {
@@ -58,13 +67,13 @@ export abstract class TelegramOutput {
             options.reply_markup = { inline_keyboard: keyboard };
         this.bot.callApiMethod<TelegramMessage>('editMessageText', options);
     }
-    sendLocation({lat,lng}: {lat: number, lng: number}, {reply} : SendLocationOptions = {reply: false}): any {
-        let options : TelegramSendLocation= {
+    sendLocation({ lat, lng }: { lat: number, lng: number }, { reply }: SendLocationOptions = { reply: false }): any {
+        let options: TelegramSendLocation = {
             chat_id: this.getChatId(),
             latitude: lat,
             longitude: lng
         };
-        if(reply)
+        if (reply)
             options.reply_to_message_id = this.getMessageId();
         this.bot.callApiMethod<TelegramMessage>('sendLocation', options);
     }

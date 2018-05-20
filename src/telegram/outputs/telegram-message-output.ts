@@ -3,7 +3,7 @@ import { TelegramBot } from "../telegram-bot";
 import { TelegramOutput } from "./telegram-output";
 
 export class TelegramMessageOutput extends TelegramOutput {
-    constructor(bot : TelegramBot, private message : TelegramMessage) {
+    constructor(bot: TelegramBot, private message: TelegramMessage) {
         super(bot);
     }
     getChatId(): number {
@@ -11,5 +11,8 @@ export class TelegramMessageOutput extends TelegramOutput {
     }
     getMessageId(): number {
         return this.message.message_id;
+    }
+    getFromId(): number {
+        return this.message.from.id;
     }
 }

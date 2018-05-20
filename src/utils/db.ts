@@ -57,8 +57,15 @@ export class Database<T> implements Iterable<T>{
         }
     }
     
-    filter(callbackFn: (item :T) => boolean ): any {
+    filter(callbackFn: (item :T) => boolean ): T[] {
         return this.items.filter(callbackFn);
+    }
+    firstOrVoid(callbackFn: (item: T) => boolean = (i) => true) : T | void {
+        if(!this.items) return;
+        for(let item of this.items){
+            if(callbackFn(item))
+                return item;
+        }
     }
     private filePath(){
         return `./database/${this.name}.json`;

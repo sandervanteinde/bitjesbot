@@ -12,6 +12,7 @@ const momenttz = require("moment-timezone");
 const reminder_command_1 = require("./telegram/commands/reminder.command");
 const weather_command_1 = require("./telegram/commands/weather.command");
 const trivia_command_1 = require("./telegram/commands/trivia.command");
+const poll_command_1 = require("./telegram/commands/poll.command");
 let telegram = new telegram_bot_1.TelegramBot();
 telegram.registerBotCommand(new roll_command_1.RollCommand());
 telegram.registerBotCommand(new anwb_command_1.AnwbCommand());
@@ -19,6 +20,7 @@ telegram.registerBotCommand(new pickupline_command_1.PickupLineCommand());
 telegram.registerBotCommand(new reminder_command_1.ReminderCommand(telegram));
 telegram.registerBotCommand(new weather_command_1.WeatherCommand());
 telegram.registerBotCommand(new trivia_command_1.TriviaCommand(telegram));
+telegram.registerBotCommand(new poll_command_1.PollCommand(telegram));
 if (config_1.default.domain) {
     let server = new server_1.Server();
     server.startWithOptions(config_1.default, () => {

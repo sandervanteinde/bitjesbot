@@ -4,10 +4,16 @@ class TelegramOutput {
     constructor(bot) {
         this.bot = bot;
     }
-    sendToChat(message, { reply, forceReply, parse_mode, callback, keyboard } = { reply: false }) {
+    sendToChat(message, options = { reply: false }) {
+        this.sendToId(this.getChatId(), message, options);
+    }
+    sendToFrom(message, options = { reply: false }) {
+        this.sendToId(this.getFromId(), message, options);
+    }
+    sendToId(id, message, { reply, forceReply, parse_mode, callback, keyboard, error } = { reply: false }) {
         let options = {
             text: message,
-            chat_id: this.getChatId(),
+            chat_id: id,
             parse_mode
         };
         if (reply)
@@ -26,7 +32,7 @@ class TelegramOutput {
             };
         }
         this.bot.callApiMethod('sendMessage', options, (resp) => { if (callback)
-            callback(resp.result); });
+            callback(resp.result); }, error || undefined);
     }
     editMessage(message, { keyboard, parse_mode } = {}) {
         let options = {

@@ -93,7 +93,7 @@ export class TelegramBot {
         method: string,
         body?: { [key: string]: any },
         callback?: (resp: TelegramResponse<TExpectedReturn>) => void,
-        error?: (err: NodeJS.ErrnoException | TelegramResponse<TExpectedReturn>) => void
+        error?: (err: TelegramResponse<void>) => void
     ) {
         let postOptions = {
             host: 'api.telegram.org',
@@ -107,7 +107,7 @@ export class TelegramBot {
         let req = request(postOptions, (res) => bodyparser.parseJson<TelegramResponse<TExpectedReturn>>(res, responseBody => {
             if (!responseBody.ok) {
                 if (error)
-                    error(responseBody);
+                    error(<any>responseBody);
                 else
                     console.error('Unhandled wrongly parsed message!', responseBody);
             }

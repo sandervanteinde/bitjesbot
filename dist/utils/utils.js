@@ -13,4 +13,17 @@ function shuffle(arr, count = 100) {
     return arr;
 }
 exports.shuffle = shuffle;
+function parseUsername(user) {
+    if (user.first_name) {
+        if (user.last_name)
+            return `${user.first_name} ${user.last_name}`;
+        else
+            return user.first_name;
+    }
+    else if (user.username) {
+        return user.username;
+    }
+    return 'Unknown user';
+}
+exports.parseUsername = parseUsername;
 //# sourceMappingURL=utils.js.map

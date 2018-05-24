@@ -5,6 +5,7 @@ const keyboard_1 = require("../keyboard/keyboard");
 const chat_id_output_1 = require("../outputs/chat-id-output");
 const db_1 = require("../../utils/db");
 const message_id_output_1 = require("../outputs/message-id-output");
+const utils_1 = require("../../utils/utils");
 class PollEntry {
     constructor(chatId, chatName) {
         this.chatId = chatId;
@@ -96,18 +97,40 @@ class PollCommand {
     modifyMessageToReflectVotes(entry) {
         this.db.saveChanges();
         let context = new message_id_output_1.MessageIdOutput(this.bot, entry.messageId, entry.chatId);
-        let msg = `Poll: ${entry.question}\nVotes:`;
+        let msg = `Poll: ${entry.question}\n\nVotes:`;
         let obj = [];
+        let users = {};
+        let count = 0;
+        let callback;
         for (let userId in entry.voted) {
             if (!obj[entry.voted[userId]])
                 obj[entry.voted[userId]] = 0;
             obj[entry.voted[userId]]++;
+            count++;
+            this.bot.getUserInGroup(entry.chatId, Number(userId), (user) => {
+                if (user)
+                    users[userId] = user;
+                count--;
+                if (count == 0 && callback) {
+                    callback();
+                }
+            });
         }
-        for (let i = 0; i < entry.answers.length; i++) {
-            let answer = entry.answers[i];
-            msg += `\n${answer}: ${obj[i] || 0}`;
+        callback = () => {
+            for (let userId in entry.voted) {
+                let user = users[userId];
+                msg += `\n${utils_1.parseUsername(user)}: ${entry.answers[entry.voted[userId]]}`;
+            }
+            msg += '\n\nTotal votes:';
+            for (let i = 0; i < entry.answers.length; i++) {
+                let answer = entry.answers[i];
+                msg += `\n${answer}: ${obj[i] || 0}`;
+            }
+            context.editMessage(msg, { keyboard: this.constructKeyboardForEntry(entry.answers) });
+        };
+        if (count == 0) {
+            callback();
         }
-        context.editMessage(msg, { keyboard: this.constructKeyboardForEntry(entry.answers) });
     }
     constructKeyboardForEntry(answers) {
         return keyboard_1.formatButtons(...answers.map(c => keyboard_1.button(c, 'poll', 'answer', c)));

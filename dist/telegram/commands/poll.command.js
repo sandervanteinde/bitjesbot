@@ -10,7 +10,7 @@ class PollEntry {
         this.chatId = chatId;
         this.chatName = chatName;
         this.question = '';
-        this.answers = ['Yes', 'No'];
+        this.answers = [];
     }
     get ChatName() { return this.chatName; }
     get ChatId() { return this.chatId; }
@@ -61,29 +61,14 @@ class PollCommand {
     onQuery(query, output) {
         let [command] = query.args;
         switch (command) {
-            case 'confirm':
-                let entry = this.entries[query.query.from.id];
-                if (!entry) {
-                    return output.editMessage('Something went wrong.');
-                }
-                let [, yesOrNo] = query.args;
-                if (yesOrNo == 'yes') {
-                    let chatOutput = new chat_id_output_1.ChatIdOutput(this.bot, entry.ChatId);
-                    chatOutput.sendToChat(`A new poll was created:\n${entry.question}`, {
-                        callback: msg => {
-                            let dbEntry = new PollDatabaseEntry(msg.message_id, entry.ChatId, entry.question, entry.answers);
-                            this.db.add(dbEntry);
-                            this.db.saveChanges();
-                        },
-                        keyboard: this.constructKeyboardForEntry(entry.answers)
-                    });
-                    output.editMessage(`Your poll was sent to: ${entry.ChatName}`);
-                }
-                else {
-                    output.editMessage('Poll making cancelled');
-                }
-                delete this.entries[query.query.from.id];
-                break;
+            case 'send':
+                return this.onConfirm(query, output);
+            case 'edit':
+                return this.onEdit(query, output);
+            case 'add':
+                return this.onAdd(query, output);
+            case 'remove':
+                return this.onRemove(query, output);
             case 'answer':
                 let dbEntry = this.db.firstOrVoid(c => c.chatId == query.query.message.chat.id && c.messageId == query.query.message.message_id);
                 if (!dbEntry) {
@@ -127,17 +112,76 @@ class PollCommand {
     constructKeyboardForEntry(answers) {
         return keyboard_1.formatButtons(...answers.map(c => keyboard_1.button(c, 'poll', 'answer', c)));
     }
+    parseMessageForEntry(entry) {
+        let { question, ChatName, answers } = entry;
+        let msg = `Okay, the question is:\n**${question}**.\nAnswers:`;
+        for (let answer of answers) {
+            msg += `\n- ${answer}`;
+        }
+        msg += `\nWhat do you want to do?`;
+        return msg;
+    }
+    getDefaultKeyboardForEntry(entry) {
+        let sendToChatBtn = keyboard_1.button('Send to chat', 'poll', 'send');
+        let editQuestion = keyboard_1.button('Edit question', 'poll', 'edit');
+        let addAnswer = keyboard_1.button('Add question', 'poll', 'add');
+        let removeAnswer = keyboard_1.button('Remove question', 'poll', 'remove');
+        if (entry.answers.length > 1) {
+            return [
+                [addAnswer, removeAnswer],
+                [editQuestion, sendToChatBtn]
+            ];
+        }
+        else {
+            return [
+                [addAnswer],
+                [editQuestion]
+            ];
+        }
+    }
     onPollQuestionReceived(context, output) {
         let entry = this.entries[context.message.from.id];
         if (!entry)
             return output.sendToChat('Something went wrong. Try again.');
         entry.question = context.message.text;
-        output.sendToChat(`Okay, the question is:\n**${entry.question}**.\nDo you want to send this to ${entry.ChatName}?`, {
+        output.sendToChat(this.parseMessageForEntry(entry), {
             parse_mode: 'Markdown',
-            keyboard: [
-                [keyboard_1.button('Yes', 'poll', 'confirm', 'yes'), keyboard_1.button('No', 'poll', 'confirm', 'no')]
-            ]
+            keyboard: this.getDefaultKeyboardForEntry(entry)
         });
+    }
+    onEdit(query, output) {
+    }
+    onAdd(query, output) {
+        let entry = this.entries[query.query.from.id];
+        output.editMessage('Adding answer.');
+        output.sendToChat('Please send the new answer, as a reply to this message.', {
+            forceReply: (msg) => {
+                entry.answers.push(msg.message.text);
+                output.sendToChat(this.parseMessageForEntry(entry), {
+                    keyboard: this.getDefaultKeyboardForEntry(entry)
+                });
+            }
+        });
+    }
+    onRemove(query, output) {
+    }
+    onConfirm(query, output) {
+        let entry = this.entries[query.query.from.id];
+        if (!entry) {
+            return output.editMessage('Something went wrong.');
+        }
+        let [, yesOrNo] = query.args;
+        let chatOutput = new chat_id_output_1.ChatIdOutput(this.bot, entry.ChatId);
+        chatOutput.sendToChat(`A new poll was created:\n${entry.question}`, {
+            callback: msg => {
+                let dbEntry = new PollDatabaseEntry(msg.message_id, entry.ChatId, entry.question, entry.answers);
+                this.db.add(dbEntry);
+                this.db.saveChanges();
+            },
+            keyboard: this.constructKeyboardForEntry(entry.answers)
+        });
+        output.editMessage(`Your poll was sent to: ${entry.ChatName}`);
+        delete this.entries[query.query.from.id];
     }
 }
 exports.PollCommand = PollCommand;

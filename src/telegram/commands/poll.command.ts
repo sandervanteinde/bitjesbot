@@ -9,13 +9,13 @@ import { CallbackQueryOutput } from "../outputs/callback-query-output";
 import { ChatIdOutput } from "../outputs/chat-id-output";
 import { TelegramBot } from "../telegram-bot";
 import { Database } from "../../utils/db";
-import { TelegramInlineKeyboardButton, TelegramUser } from "../../../typings/telegram";
+import { TelegramInlineKeyboardButton, TelegramUser, TelegramMessage } from "../../../typings/telegram";
 import { MessageIdOutput } from "../outputs/message-id-output";
 import { parseUsername } from "../../utils/utils";
 
 class PollEntry {
     public question: string = '';
-    public answers: string[] = ['Yes', 'No'];
+    public answers: string[] = [];
     get ChatName(): string { return this.chatName; }
     get ChatId(): number { return this.chatId; }
     constructor(private chatId: number, private chatName: string) {
@@ -30,7 +30,6 @@ class PollDatabaseEntry {
         public answers: string[]
     ) { }
 }
-
 export class PollCommand implements IBotCommand, IKeyboardHandler {
     private db: Database<PollDatabaseEntry>;
     constructor(
@@ -56,11 +55,14 @@ export class PollCommand implements IBotCommand, IKeyboardHandler {
         return false;
     }
     onMessage(context: TelegramMessageContext, output: TelegramOutput): void {
+        this.sendEditQuestion(output, (msg) => {
+            output.sendToChat('A message was sent privately to set up the poll.', { reply: true });
+            this.entries[context.message.from.id] = new PollEntry(context.message.chat.id, context.message.chat.title);
+        });
+    }
+    private sendEditQuestion(output: TelegramOutput, callback?: (msg: TelegramMessage) => void) {
         output.sendToFrom('What is the question of the poll?', {
-            callback: (msg) => {
-                output.sendToChat('A message was sent privately to set up the poll.', { reply: true });
-                this.entries[context.message.from.id] = new PollEntry(context.message.chat.id, context.message.chat.title);
-            },
+            callback,
             error: (err) => {
                 output.sendToChat(err.error_code == 403 ? `I can't send you a private message. Start the bot first at @${config.botName}` : 'Something went wrong. Contact the admin of this bot!', { reply: true });
             },
@@ -70,28 +72,16 @@ export class PollCommand implements IBotCommand, IKeyboardHandler {
     onQuery(query: KeyboardContext, output: CallbackQueryOutput): string | void {
         let [command] = query.args;
         switch (command) {
-            case 'confirm':
-                let entry = this.entries[query.query.from.id];
-                if (!entry) {
-                    return output.editMessage('Something went wrong.');
-                }
-                let [, yesOrNo] = query.args;
-                if (yesOrNo == 'yes') {
-                    let chatOutput = new ChatIdOutput(this.bot, entry.ChatId);
-                    chatOutput.sendToChat(`A new poll was created:\n${entry.question}`, {
-                        callback: msg => {
-                            let dbEntry = new PollDatabaseEntry(msg.message_id, entry.ChatId, entry.question, entry.answers);
-                            this.db.add(dbEntry);
-                            this.db.saveChanges();
-                        },
-                        keyboard: this.constructKeyboardForEntry(entry.answers)
-                    });
-                    output.editMessage(`Your poll was sent to: ${entry.ChatName}`);
-                } else {
-                    output.editMessage('Poll making cancelled');
-                }
-                delete this.entries[query.query.from.id];
-                break;
+            case 'send':
+                return this.onConfirm(query, output);
+            case 'edit':
+                return this.onEdit(query, output);
+            case 'add':
+                return this.onAdd(query, output);
+            case 'remove':
+                return this.onRemove(query, output);
+            case 'remove-answer':
+                return this.onRemoveAnswer(query, output);
             case 'answer':
                 let dbEntry = this.db.firstOrVoid(c => c.chatId == query.query.message.chat.id && c.messageId == query.query.message.message_id);
                 if (!dbEntry) {
@@ -122,49 +112,129 @@ export class PollCommand implements IBotCommand, IKeyboardHandler {
         let obj: number[] = [];
         let users: { [userId: number]: TelegramUser } = {};
         let count = 0;
-        let callback : (() => void | void);
+        let callback: (() => void | void);
         for (let userId in entry.voted) {
             if (!obj[entry.voted[userId]]) obj[entry.voted[userId]] = 0;
             obj[entry.voted[userId]]++;
             count++;
-            this.bot.getUserInGroup(entry.chatId, Number(userId), (user) => { 
-                if (user) 
-                    users[userId] = user; 
-                count--; 
-                if(count == 0 && callback){
+            this.bot.getUserInGroup(entry.chatId, Number(userId), (user) => {
+                if (user)
+                    users[userId] = user;
+                count--;
+                if (count == 0 && callback) {
                     callback();
                 }
             });
         }
         callback = () => {
-            for(let userId in entry.voted){
+            for (let userId in entry.voted) {
                 let user = users[userId];
                 msg += `\n${parseUsername(user)}: ${entry.answers[entry.voted[userId]]}`;
             }
             msg += '\n\nTotal votes:';
-            for(let i = 0; i < entry.answers.length; i++){
+            for (let i = 0; i < entry.answers.length; i++) {
                 let answer = entry.answers[i];
                 msg += `\n${answer}: ${obj[i] || 0}`
             }
             context.editMessage(msg, { keyboard: this.constructKeyboardForEntry(entry.answers) });
         }
-        if(count == 0){
+        if (count == 0) {
             callback();
         }
     }
     constructKeyboardForEntry(answers: string[]): TelegramInlineKeyboardButton[][] {
         return formatButtons(...answers.map(c => button(c, 'poll', 'answer', c)))
     }
+    private parseMessageForEntry(entry: PollEntry) {
+        let { question, ChatName, answers } = entry;
+        let msg = `Okay, the question is:\n**${question}**.\nAnswers:`;
+        for (let answer of answers) {
+            msg += `\n- ${answer}`;
+        }
+        msg += `\nWhat do you want to do?`;
+        return msg;
+    }
+    private getDefaultKeyboardForEntry(entry: PollEntry): TelegramInlineKeyboardButton[][] {
+        let sendToChatBtn = button('Send to chat', 'poll', 'send');
+        let editQuestion = button('Edit question', 'poll', 'edit');
+        let addAnswer = button('Add answer', 'poll', 'add');
+        let removeAnswer = button('Remove answer', 'poll', 'remove');
+        if (entry.answers.length > 1)
+            return [
+                [addAnswer, removeAnswer],
+                [editQuestion, sendToChatBtn]
+            ];
+        else if (entry.answers.length == 1)
+            return [
+                [addAnswer, removeAnswer],
+                [editQuestion]
+            ];
+        else
+            return [
+                [addAnswer],
+                [editQuestion]
+            ];
+    }
     private onPollQuestionReceived(context: TelegramMessageContext, output: TelegramOutput) {
         let entry = this.entries[context.message.from.id];
         if (!entry)
             return output.sendToChat('Something went wrong. Try again.');
         entry.question = context.message.text;
-        output.sendToChat(`Okay, the question is:\n**${entry.question}**.\nDo you want to send this to ${entry.ChatName}?`, {
+        output.sendToChat(this.parseMessageForEntry(entry), {
             parse_mode: 'Markdown',
-            keyboard: [
-                [button('Yes', 'poll', 'confirm', 'yes'), button('No', 'poll', 'confirm', 'no')]
-            ]
+            keyboard: this.getDefaultKeyboardForEntry(entry)
         });
+    }
+
+    private onEdit(query: KeyboardContext, output: CallbackQueryOutput) {
+        output.editMessage('Editing question');
+        this.sendEditQuestion(output);
+    }
+    private onAdd(query: KeyboardContext, output: CallbackQueryOutput) {
+        let entry = this.entries[query.query.from.id];
+        output.editMessage('Adding answer.');
+        output.sendToChat('Please send the new answer, as a reply to this message.', {
+            forceReply: (msg) => {
+                entry.answers.push(msg.message.text);
+                output.sendToChat(this.parseMessageForEntry(entry), {
+                    keyboard: this.getDefaultKeyboardForEntry(entry)
+                });
+            }
+        });
+    }
+    private onRemove(query: KeyboardContext, output: CallbackQueryOutput) {
+        let entry = this.entries[query.query.from.id];
+        if (!entry)
+            return output.editMessage('Something went wrong');
+        output.editMessage('What answer do you want to remove?', {
+            keyboard: formatButtons(...entry.answers.map((c, i) => button(c, 'poll', 'remove-answer', i.toString())))
+        });
+    }
+    private onRemoveAnswer(query: KeyboardContext, output: CallbackQueryOutput) {
+        let [, index] = query.args;
+        let entry = this.entries[query.query.from.id];
+        if(!entry)
+            return output.editMessage('Something went wrong');
+        entry.answers.splice(Number(index), 1);
+        output.editMessage(this.parseMessageForEntry(entry), {
+            keyboard: this.getDefaultKeyboardForEntry(entry)
+        });
+    }
+    private onConfirm(query: KeyboardContext, output: CallbackQueryOutput) {
+        let entry = this.entries[query.query.from.id];
+        if (!entry) {
+            return output.editMessage('Something went wrong.');
+        }
+        let chatOutput = new ChatIdOutput(this.bot, entry.ChatId);
+        chatOutput.sendToChat(`A new poll was created:\n${entry.question}`, {
+            callback: msg => {
+                let dbEntry = new PollDatabaseEntry(msg.message_id, entry.ChatId, entry.question, entry.answers);
+                this.db.add(dbEntry);
+                this.db.saveChanges();
+            },
+            keyboard: this.constructKeyboardForEntry(entry.answers)
+        });
+        output.editMessage(`Your poll was sent to: ${entry.ChatName}`);
+        delete this.entries[query.query.from.id];
     }
 } 
